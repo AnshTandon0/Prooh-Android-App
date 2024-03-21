@@ -5,7 +5,7 @@ import retrofit2.http.GET
 
 interface ApiCalls {
 
-    @GET("/api/screens/syncScreenCode/UNVw67")
+    @GET("/api/screens/syncScreenCode/qXpD36")
     suspend fun getVideos() : GetVideoResponse
 
 }

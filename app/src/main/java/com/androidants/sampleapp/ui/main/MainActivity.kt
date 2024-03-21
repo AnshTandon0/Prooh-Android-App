@@ -1,6 +1,8 @@
 package com.androidants.sampleapp.ui.main
 
+import android.Manifest
 import android.app.DownloadManager
+import android.content.pm.PackageManager
 import android.graphics.BitmapFactory
 import android.opengl.Visibility
 import androidx.appcompat.app.AppCompatActivity
@@ -10,6 +12,8 @@ import android.os.Environment
 import android.util.Log
 import android.view.View
 import android.webkit.WebViewClient
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import com.androidants.sampleapp.common.Constants
@@ -25,39 +29,45 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var binding : ActivityMainBinding
     private lateinit var viewModel: MainViewModel
+    private lateinit var sharedPreferencesClass: SharedPreferencesClass
     private var point = 0
-    private var allDownloaded = 0
     private var arrayList = mutableListOf<VideoData>()
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+//        checkPermission()
         setupInitialVideo()
+        initSharedPreferences()
         initViewModel()
 
         binding.videoView.setOnCompletionListener {
             checkStatus()
         }
-
     }
 
     private fun setupInitialVideo() {
         binding.videoView.setVideoPath(Constants.INITIAL_VIDEO_PATH)
+        binding.videoView.setZOrderOnTop(true)
         binding.videoView.start()
     }
 
-    private fun checkFile (fileName : String) : Boolean {
+    private fun checkFileExists (fileName : String) : Boolean {
         val directoryPath = Constants.DOWNLOAD_FOLDER_PATH
         val directory = File(directoryPath)
 
         val files = directory.listFiles()?.filter { it.isFile }
         files?.forEach { file ->
             if (file.name == fileName)
-                return false
+                return true
         }
-        return true
+        return false
+    }
+    private fun initSharedPreferences() {
+        sharedPreferencesClass = SharedPreferencesClass(this@MainActivity)
     }
 
     private fun initViewModel() {
@@ -67,10 +77,13 @@ class MainActivity : AppCompatActivity() {
         }
         viewModel.getVideoResponse.observe (this) { it ->
 
+            Log.d(Constants.TAG  , it.toString())
             for ( data in it.myScreenVideos )
             {
-                val newData = VideoData( cid = data.cid.toString() , type = data.fileType.toString() ,
-                    duration = data.duration.toString() , url = data.video.toString() )
+                val newData = VideoData( cid = data.cid.toString() , type = data.fileType.toString() , url = data.video.toString() )
+
+                if( !data.duration.toString().isEmpty() )
+                    newData.duration = data.duration.toString()
 
                 when ( newData.type )
                 {
@@ -82,11 +95,11 @@ class MainActivity : AppCompatActivity() {
                     }
                     Constants.TYPE_URL -> {
                         newData.address = data.video.toString()
-//                        newData.status = Constants.STATUS_DONE
+                        newData.status = Constants.STATUS_DONE
                     }
                 }
 
-                if ( checkFile(newData.filename) && data.fileType != Constants.TYPE_URL)
+                if ( !checkFileExists(newData.filename) && data.fileType != Constants.TYPE_URL)
                 {
                     lifecycleScope.launch{
                         viewModel.downloadVideo(this@MainActivity , newData)
@@ -122,26 +135,32 @@ class MainActivity : AppCompatActivity() {
 
     private fun checkStatus()
     {
-        if ( point >= arrayList.size )
-            point = 0
-        while ( point < arrayList.size )
+        if ( sharedPreferencesClass.checkSuccessEmpty() )
         {
-            if ( arrayList[point].status == Constants.STATUS_DONE )
-            {
-                Log.d(Constants.TAG  , "Calling Set Data")
-                setData()
-                return
-            }
-            point++
+            binding.videoView.setVideoPath(Constants.INITIAL_VIDEO_PATH)
+            binding.videoView.start()
         }
-        binding.videoView.setVideoPath(Constants.INITIAL_VIDEO_PATH)
-        binding.videoView.start()
-        if(allDownloaded == 0)
-            checkDownloadStatus()
+        else
+        {
+            if ( point >= arrayList.size )
+                point = 0
+            while ( point < arrayList.size )
+            {
+                if ( arrayList[point].status == Constants.STATUS_DONE || checkDownloadStatus() )
+                {
+                    Log.d(Constants.TAG  , "Calling Set Data")
+                    setData()
+                    return
+                }
+                Log.d(Constants.TAG  , "Point Increment")
+                point++
+            }
+        }
     }
 
     private fun setData()
     {
+        Log.d(Constants.TAG , arrayList[point].toString())
         when( arrayList[point].type )
         {
             Constants.TYPE_VIDEO ->{
@@ -151,6 +170,7 @@ class MainActivity : AppCompatActivity() {
                 Log.d(Constants.TAG , arrayList[point].address)
                 binding.videoView.setVideoPath(arrayList[point].address)
                 binding.videoView.start()
+                Log.d(Constants.TAG  , "Video Preview Start")
             }
             Constants.TYPE_IMAGE -> {
                 binding.imageView.visibility = View.VISIBLE
@@ -164,6 +184,7 @@ class MainActivity : AppCompatActivity() {
                         checkStatus()
                     }
                 }.start()
+                Log.d(Constants.TAG  , "Image Preview Start")
             }
             Constants.TYPE_URL -> {
                 binding.imageView.visibility = View.GONE
@@ -178,52 +199,62 @@ class MainActivity : AppCompatActivity() {
                         checkStatus()
                     }
                 }.start()
+                Log.d(Constants.TAG  , "Url Preview Start")
             }
         }
         point ++
-        if(allDownloaded == 0)
-            checkDownloadStatus()
     }
 
-    private fun checkDownloadStatus()
+    private fun checkDownloadStatus() : Boolean
     {
         Log.d(Constants.TAG  , "Check Status")
-        var ct = 0
-        for ( response in arrayList )
+        if(sharedPreferencesClass.checkSuccessIdExists(arrayList[point].downloadId.toString()))
         {
-            if ( response.address == "" )
-            {
-                ct ++
-                val query = DownloadManager.Query().setFilterById(response.downloadId)
-                val downloadManager = getSystemService(DownloadManager::class.java)
-                val cursor = downloadManager.query(query)
-                if (cursor.moveToFirst()) {
-                    val status = cursor.getInt(cursor.getColumnIndex(DownloadManager.COLUMN_STATUS))
-                    when (status) {
-                        DownloadManager.STATUS_SUCCESSFUL -> {
-                            Log.d(Constants.TAG, "downloaded completed")
-                            for ( data in arrayList )
-                                if ( data.cid == response.cid )
-                                {
-                                    data.address = Constants.DOWNLOAD_FOLDER_PATH + data.filename
-                                    data.status = Constants.STATUS_DONE
-                                }
-                        }
-                        DownloadManager.STATUS_FAILED -> {
-                            Log.d(Constants.TAG, "downloaded Failed")
-                        }
-                        DownloadManager.STATUS_RUNNING -> {
-                            Log.d(Constants.TAG, "downloaded Running")
-                        }
-                        DownloadManager.STATUS_PENDING -> {
-                            Log.d(Constants.TAG, "download Pending")
-                        }
-                        else-> Log.d(Constants.TAG, "Other Issues")
-                    }
-                }
+            Log.d(Constants.TAG  , "Check Status Cnf")
+            arrayList[point].status = Constants.STATUS_DONE
+            arrayList[point].address = Constants.DOWNLOAD_FOLDER_PATH + arrayList[point].filename
+            sharedPreferencesClass.addSuccessId(arrayList[point].filename)
+            return true
+        }
+        else if ( sharedPreferencesClass.checkFailureIdExists(arrayList[point].downloadId.toString()) )
+        {
+            Log.d(Constants.TAG  , "Check Status failed")
+            lifecycleScope.launch {
+                viewModel.downloadVideo(this@MainActivity , arrayList[point])
+            }
+            sharedPreferencesClass.deleteFailureId(arrayList[point].downloadId.toString())
+        }
+        Log.d(Constants.TAG  , "Check Status None")
+        return false
+    }
+
+    private fun checkPermission() {
+        Log.d(Constants.TAG  , "Check Status None")
+        if (ContextCompat.checkSelfPermission(this@MainActivity, Manifest.permission.WRITE_EXTERNAL_STORAGE)
+            != PackageManager.PERMISSION_GRANTED ) {
+            Log.d(Constants.TAG  , "Check Status None")
+            ActivityCompat.requestPermissions(this@MainActivity,
+                    arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE) ,0)
+        }
+        else
+        {
+            Log.d(Constants.TAG  , "Check Status")
+            setupInitialVideo()
+            initViewModel()
+        }
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == 0) {
+            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                setupInitialVideo()
+                initViewModel()
             }
         }
-        if ( ct == 0 )
-            allDownloaded = 1
     }
 }

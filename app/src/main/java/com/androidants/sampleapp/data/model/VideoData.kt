@@ -6,7 +6,7 @@ data class VideoData(
     var cid : String = "",
     var downloadId : Long = 0,
     var type : String = "",
-    var duration: String = "" ,
+    var duration: String = "5" ,
     var url : String = "",
     var address : String = "" ,
     var status : String = Constants.STATUS_DOWNLOADING,
