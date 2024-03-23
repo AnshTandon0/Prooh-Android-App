@@ -60,4 +60,14 @@ class SharedPreferencesClass ( context: Context ) {
             return true
         return false
     }
+
+    fun getScreenCode () : String {
+        val screenCode = sharedPreferences.getString(Constants.SHARED_PREF_SCREEN_CODE , "")
+        return screenCode.toString()
+    }
+
+    fun setScreenCode (code : String) {
+        editor.putString(Constants.SHARED_PREF_SCREEN_CODE , code)
+        editor.commit()
+    }
 }

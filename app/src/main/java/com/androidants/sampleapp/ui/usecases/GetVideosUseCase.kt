@@ -7,7 +7,7 @@ import javax.inject.Inject
 class GetVideosUseCase @Inject constructor(
     private val repository: MainRepository
 ) {
-    suspend fun invoke () : GetVideoResponse {
-        return repository.getVideoLinks()
+    suspend fun invoke (screenCode:String) : GetVideoResponse {
+        return repository.getVideoLinks(screenCode)
     }
 }

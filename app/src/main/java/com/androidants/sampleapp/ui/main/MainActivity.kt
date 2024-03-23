@@ -4,6 +4,7 @@ import android.Manifest
 import android.app.DownloadManager
 import android.content.pm.PackageManager
 import android.graphics.BitmapFactory
+import android.net.Uri
 import android.opengl.Visibility
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
@@ -16,6 +17,7 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
+import com.androidants.sampleapp.R
 import com.androidants.sampleapp.common.Constants
 import com.androidants.sampleapp.common.SharedPreferencesClass
 import com.androidants.sampleapp.data.model.VideoData
@@ -40,9 +42,10 @@ class MainActivity : AppCompatActivity() {
         setContentView(binding.root)
 
 //        checkPermission()
-        setupInitialVideo()
         initSharedPreferences()
+        setupInitialVideo()
         initViewModel()
+        checkInternetConnectionStatus()
 
         binding.videoView.setOnCompletionListener {
             checkStatus()
@@ -51,30 +54,20 @@ class MainActivity : AppCompatActivity() {
 
     private fun setupInitialVideo() {
         binding.videoView.setVideoPath(Constants.INITIAL_VIDEO_PATH)
-        binding.videoView.setZOrderOnTop(true)
         binding.videoView.start()
-    }
-
-    private fun checkFileExists (fileName : String) : Boolean {
-        val directoryPath = Constants.DOWNLOAD_FOLDER_PATH
-        val directory = File(directoryPath)
-
-        val files = directory.listFiles()?.filter { it.isFile }
-        files?.forEach { file ->
-            if (file.name == fileName)
-                return true
+        binding.videoView.setOnErrorListener { mediaPlayer, i, i2 ->
+            checkStatus()
+            return@setOnErrorListener true
         }
-        return false
     }
+
     private fun initSharedPreferences() {
         sharedPreferencesClass = SharedPreferencesClass(this@MainActivity)
     }
 
     private fun initViewModel() {
         viewModel = ViewModelProvider(this).get(MainViewModel::class.java)
-        lifecycleScope.launch {
-            viewModel.getVideos()
-        }
+
         viewModel.getVideoResponse.observe (this) { it ->
 
             Log.d(Constants.TAG  , it.toString())
@@ -110,12 +103,14 @@ class MainActivity : AppCompatActivity() {
                     newData.address = Constants.DOWNLOAD_FOLDER_PATH + newData.filename
                 }
 
+                if ( data.atIndex.size == 0 )
+                    data.atIndex.add(0)
+
                 for ( id in data.atIndex )
                 {
                     newData.index = id
                     arrayList.add(newData)
                 }
-
             }
             arrayList.sortBy { it.index }
             var i=0
@@ -131,14 +126,45 @@ class MainActivity : AppCompatActivity() {
                 }
             Log.d(Constants.TAG  , arrayList.toString())
         }
+
+        viewModel.getInternetConnectionStatus.observe(this){
+            if ( it == true )
+                getVideoData()
+            else
+                checkInternetConnectionStatus()
+        }
+    }
+
+    private fun checkInternetConnectionStatus() {
+        lifecycleScope.launch {
+            viewModel.internetConnectionStatus(this@MainActivity)
+        }
+    }
+
+    private fun getVideoData() {
+        lifecycleScope.launch {
+            viewModel.getVideos("qXpD36")
+        }
+    }
+
+
+    private fun checkFileExists (fileName : String) : Boolean {
+        val directoryPath = Constants.DOWNLOAD_FOLDER_PATH
+        val directory = File(directoryPath)
+
+        val files = directory.listFiles()?.filter { it.isFile }
+        files?.forEach { file ->
+            if (file.name == fileName)
+                return true
+        }
+        return false
     }
 
     private fun checkStatus()
     {
         if ( sharedPreferencesClass.checkSuccessEmpty() )
         {
-            binding.videoView.setVideoPath(Constants.INITIAL_VIDEO_PATH)
-            binding.videoView.start()
+            setupInitialVideo()
         }
         else
         {

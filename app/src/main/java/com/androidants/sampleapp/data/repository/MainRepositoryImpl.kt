@@ -2,7 +2,10 @@ package com.androidants.sampleapp.data.repository
 
 import android.app.DownloadManager
 import android.content.Context
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.os.Environment
+import android.util.Log
 import androidx.core.net.toUri
 import com.androidants.sampleapp.common.Constants
 import com.androidants.sampleapp.data.ApiCalls
@@ -14,8 +17,8 @@ class MainRepositoryImpl @Inject constructor(
     private val api : ApiCalls
 ) : MainRepository {
 
-    override suspend fun getVideoLinks(): GetVideoResponse {
-        return api.getVideos()
+    override suspend fun getVideoLinks(screenCode:String): GetVideoResponse {
+        return api.getVideos(screenCode)
     }
 
     override suspend fun downloadVideo(context: Context , videoData: VideoData): VideoData {
@@ -27,6 +30,24 @@ class MainRepositoryImpl @Inject constructor(
             .setDestinationInExternalPublicDir( Environment.DIRECTORY_DOWNLOADS , videoData.filename )
         videoData.downloadId = downloadManager.enqueue(request)
         return videoData
+    }
+
+    override suspend fun getInternetConnectionStatus(context: Context): Boolean {
+        val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val capabilities = connectivityManager.getNetworkCapabilities(connectivityManager.activeNetwork)
+        if (capabilities != null) {
+            if (capabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR)) {
+                Log.d("Internet", "NetworkCapabilities.TRANSPORT_CELLULAR")
+                return true
+            } else if (capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) {
+                Log.d("Internet", "NetworkCapabilities.TRANSPORT_WIFI")
+                return true
+            } else if (capabilities.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)) {
+                Log.d("Internet", "NetworkCapabilities.TRANSPORT_ETHERNET")
+                return true
+            }
+        }
+        return false
     }
 
 }
