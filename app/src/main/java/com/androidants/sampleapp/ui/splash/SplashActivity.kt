@@ -3,6 +3,7 @@ package com.androidants.sampleapp.ui.splash
 import android.content.Intent
 import android.os.Bundle
 import android.os.CountDownTimer
+import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
@@ -90,7 +91,7 @@ class SplashActivity : AppCompatActivity() {
 
     private fun getVideoData() {
         lifecycleScope.launch {
-            viewModel.getVideos("qXpD36")
+            viewModel.getVideos(sharedPreferencesClass.getScreenCode())
         }
     }
 

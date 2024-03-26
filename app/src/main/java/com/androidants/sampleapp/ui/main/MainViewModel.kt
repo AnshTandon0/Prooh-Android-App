@@ -4,10 +4,12 @@ import android.content.Context
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import com.androidants.sampleapp.data.model.VideoData
+import com.androidants.sampleapp.data.model.log.LogReport
 import com.androidants.sampleapp.data.model.video.GetVideoResponse
 import com.androidants.sampleapp.ui.usecases.DownloadVideoAndImageUseCase
 import com.androidants.sampleapp.ui.usecases.GetInternetConnectionStatusUseCase
 import com.androidants.sampleapp.ui.usecases.GetVideosUseCase
+import com.androidants.sampleapp.ui.usecases.PostLogsUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 
@@ -16,7 +18,8 @@ import javax.inject.Inject
 class MainViewModel @Inject constructor(
     private val getVideosUseCase: GetVideosUseCase ,
     private val downloadVideoAndImageUseCase: DownloadVideoAndImageUseCase ,
-    private val getInternetConnectionStatusUseCase: GetInternetConnectionStatusUseCase
+    private val getInternetConnectionStatusUseCase: GetInternetConnectionStatusUseCase ,
+    private val postLogsUseCase: PostLogsUseCase
 ) : ViewModel() {
 
     private var _getVideoResponse = MutableLiveData<GetVideoResponse>()
@@ -33,7 +36,11 @@ class MainViewModel @Inject constructor(
     }
 
     suspend fun getVideos (screenCode:String) {
-        _getVideoResponse.postValue(getVideosUseCase.invoke(screenCode))
+        val response = getVideosUseCase.invoke(screenCode)
+        if ( response.code() == 200 )
+            _getVideoResponse.postValue(response.body())
+        else
+            _getVideoResponse.postValue(null)
     }
 
     suspend fun downloadVideo(context : Context, videoData: VideoData ) {
@@ -42,6 +49,11 @@ class MainViewModel @Inject constructor(
 
     suspend fun internetConnectionStatus(context: Context) {
         _getInternetConnectionStatus.postValue(getInternetConnectionStatusUseCase.invoke(context))
+    }
+
+    suspend fun postLogs ( screenId : String , logReport: LogReport )
+    {
+        postLogsUseCase.invoke(screenId , logReport)
     }
 
 }

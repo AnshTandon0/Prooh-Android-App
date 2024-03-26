@@ -10,6 +10,7 @@ object Constants {
     val INITIAL_VIDEO_PATH = "android.resource://com.androidants.sampleapp/" + R.raw.sample
     val SHARED_PREF_NAME = "vinciis"
     val SHARED_PREF_SCREEN_CODE = "screen_code"
+    val SHARED_PREF_SCREEN_ID = "screen_id"
     val SHARED_PREF_SUCCESS_ID_SET = "success_download"
     val SHARED_PREF_FAILURE_ID_SET = "failure_download"
     val STATUS_DOWNLOADING = "downloading"

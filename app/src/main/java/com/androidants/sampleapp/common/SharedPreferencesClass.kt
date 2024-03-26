@@ -70,4 +70,14 @@ class SharedPreferencesClass ( context: Context ) {
         editor.putString(Constants.SHARED_PREF_SCREEN_CODE , code)
         editor.commit()
     }
+
+    fun getScreenId () : String {
+        val screenId = sharedPreferences.getString(Constants.SHARED_PREF_SCREEN_ID , "")
+        return screenId.toString()
+    }
+
+    fun setScreenId (id : String) {
+        editor.putString(Constants.SHARED_PREF_SCREEN_ID , id)
+        editor.commit()
+    }
 }

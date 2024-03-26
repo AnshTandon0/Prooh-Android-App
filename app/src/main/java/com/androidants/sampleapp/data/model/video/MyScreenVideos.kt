@@ -30,7 +30,7 @@ data class MyScreenVideos (
     @SerializedName("remainingSlots"    ) var remainingSlots    : Int?              = null,
     @SerializedName("totalSlotPlayed"   ) var totalSlotPlayed   : Int?              = null,
     @SerializedName("slotPlayedPerDay"  ) var slotPlayedPerDay  : Int?              = null,
-    @SerializedName("rentPerSlot"       ) var rentPerSlot       : Int?              = null,
+    @SerializedName("rentPerSlot"       ) var rentPerSlot       : Double?              = null,
     @SerializedName("rentPerDay"        ) var rentPerDay        : Int?              = null,
     @SerializedName("slotsPlayPerDay"   ) var slotsPlayPerDay   : Int?              = null,
     @SerializedName("totalAmount"       ) var totalAmount       : Int?              = null,

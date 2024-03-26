@@ -24,7 +24,11 @@ class SplashViewModel @Inject constructor(
     }
 
     suspend fun getVideos (screenCode:String) {
-        _getVideoResponse.postValue(getVideosUseCase.invoke(screenCode))
+        val response = getVideosUseCase.invoke(screenCode)
+        if ( response.code() == 200 )
+            _getVideoResponse.postValue(response.body())
+        else
+            _getVideoResponse.postValue(null)
     }
 
     suspend fun internetConnectionStatus(context: Context) {

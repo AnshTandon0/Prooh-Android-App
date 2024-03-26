@@ -10,14 +10,17 @@ import androidx.core.net.toUri
 import com.androidants.sampleapp.common.Constants
 import com.androidants.sampleapp.data.ApiCalls
 import com.androidants.sampleapp.data.model.VideoData
+import com.androidants.sampleapp.data.model.log.LogReport
 import com.androidants.sampleapp.data.model.video.GetVideoResponse
+import com.androidants.sampleapp.data.model.video.MyScreenVideos
+import retrofit2.Response
 import javax.inject.Inject
 
 class MainRepositoryImpl @Inject constructor(
     private val api : ApiCalls
 ) : MainRepository {
 
-    override suspend fun getVideoLinks(screenCode:String): GetVideoResponse {
+    override suspend fun getVideoLinks(screenCode:String): Response<GetVideoResponse> {
         return api.getVideos(screenCode)
     }
 
@@ -48,6 +51,10 @@ class MainRepositoryImpl @Inject constructor(
             }
         }
         return false
+    }
+
+    override suspend fun postLogs(screenId: String , logReport: LogReport): ArrayList<MyScreenVideos> {
+        return api.postLogs(screenId , logReport)
     }
 
 }
