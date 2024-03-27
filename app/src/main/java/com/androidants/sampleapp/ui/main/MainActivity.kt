@@ -20,11 +20,11 @@ import com.androidants.sampleapp.common.SharedPreferencesClass
 import com.androidants.sampleapp.common.Utils
 import com.androidants.sampleapp.data.model.VideoData
 import com.androidants.sampleapp.data.model.log.DeviceInfo
-import com.androidants.sampleapp.data.model.log.LogInput
 import com.androidants.sampleapp.data.model.log.LogReport
 import com.androidants.sampleapp.data.model.video.GetVideoResponse
 import com.androidants.sampleapp.databinding.ActivityMainBinding
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.io.File
 import java.util.Calendar
@@ -38,6 +38,7 @@ class MainActivity : AppCompatActivity() {
     private var point = 0
     private var arrayList = mutableListOf<VideoData>()
     private lateinit var logReport: LogReport
+    private var internetConnection : Boolean = true
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -85,7 +86,9 @@ class MainActivity : AppCompatActivity() {
         viewModel = ViewModelProvider(this).get(MainViewModel::class.java)
 
         viewModel.getVideoResponse.observe (this) { it ->
-            createArrayList(it)
+            it?.let {
+                createArrayList(it)
+            }
         }
         viewModel.downloadManagerId.observe(this) {
             for ( data in arrayList )
@@ -96,32 +99,40 @@ class MainActivity : AppCompatActivity() {
         }
 
         viewModel.getInternetConnectionStatus.observe(this){
+            internetConnection = it
+            checkInternetConnectionStatus()
             if ( it == true )
                 getVideoData()
             else
-                checkInternetConnectionStatus()
+                createOfflineList()
         }
     }
 
     private fun checkInternetConnectionStatus() {
-        lifecycleScope.launch {
+        lifecycleScope.launch(Dispatchers.IO + Constants.coroutineExceptionHandler)  {
             viewModel.internetConnectionStatus(this@MainActivity)
         }
     }
 
     private fun getVideoData() {
-        lifecycleScope.launch {
+        lifecycleScope.launch (Dispatchers.IO + Constants.coroutineExceptionHandler) {
             viewModel.getVideos(sharedPreferencesClass.getScreenCode())
         }
     }
 
     private fun postLogData() {
-        lifecycleScope.launch {
+        lifecycleScope.launch (Dispatchers.IO + Constants.coroutineExceptionHandler) {
             viewModel.postLogs(sharedPreferencesClass.getScreenId() , logReport)
         }
 
         Log.d(Constants.TAG , logReport.toString())
         logReport.data.clear()
+    }
+
+    private fun createOfflineList() {
+        val data = sharedPreferencesClass.getFileData()
+        arrayList.clear()
+        arrayList.addAll(data)
     }
 
     private fun checkFileExists (fileName : String) : Boolean {
@@ -182,7 +193,7 @@ class MainActivity : AppCompatActivity() {
 
             if ( !checkFileExists(newData.filename) && data.fileType != Constants.TYPE_URL)
             {
-                lifecycleScope.launch{
+                lifecycleScope.launch(Dispatchers.IO + Constants.coroutineExceptionHandler){
                     viewModel.downloadVideo(this@MainActivity , newData)
                 }
             }
@@ -203,6 +214,7 @@ class MainActivity : AppCompatActivity() {
         list.sortBy { it.index }
         arrayList.clear()
         arrayList.addAll(list)
+        sharedPreferencesClass.saveFileData(arrayList)
         deleteAdditionalFiles()
     }
 
@@ -217,15 +229,18 @@ class MainActivity : AppCompatActivity() {
             if ( point >= arrayList.size )
             {
                 point = 0
-                postLogData()
-                getVideoData()
+                if ( internetConnection )
+                {
+                    postLogData()
+                    getVideoData()
+                }
             }
             while ( point < arrayList.size )
             {
-                if ( arrayList[point].status == Constants.STATUS_DONE || checkDownloadStatus() )
+                if ( arrayList[point].status == Constants.STATUS_DONE || checkFileDownloadStatus() )
                 {
                     Log.d(Constants.TAG  , "Calling Set Data")
-                    setData()
+                    setDataToViews()
                     return
                 }
                 Log.d(Constants.TAG  , "Point Increment")
@@ -235,7 +250,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun setData()
+    private fun setDataToViews()
     {
         val map = mutableMapOf<String , String>()
         map.put(Calendar.getInstance().time.toString() , arrayList[point].cid)
@@ -287,7 +302,7 @@ class MainActivity : AppCompatActivity() {
         point ++
     }
 
-    private fun checkDownloadStatus() : Boolean
+    private fun checkFileDownloadStatus() : Boolean
     {
         Log.d(Constants.TAG  , "Check Status")
         if(sharedPreferencesClass.checkSuccessIdExists(arrayList[point].downloadId.toString()))

@@ -2,6 +2,10 @@ package com.androidants.sampleapp.common
 
 import android.content.Context
 import android.content.SharedPreferences
+import com.androidants.sampleapp.data.model.VideoData
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
+import java.lang.reflect.Type
 
 class SharedPreferencesClass ( context: Context ) {
 
@@ -79,5 +83,20 @@ class SharedPreferencesClass ( context: Context ) {
     fun setScreenId (id : String) {
         editor.putString(Constants.SHARED_PREF_SCREEN_ID , id)
         editor.commit()
+    }
+
+    fun saveFileData (list : MutableList<VideoData>) {
+        val gson = Gson()
+        val data = gson.toJson(list)
+        editor.putString(Constants.SHARED_PREF_FILE_DATA , data)
+        editor.commit()
+    }
+
+    fun getFileData () : ArrayList<VideoData> {
+        val gson = Gson()
+        val type: Type = object : TypeToken<ArrayList<VideoData>>() {}.type
+        val data = sharedPreferences.getString(Constants.SHARED_PREF_FILE_DATA , "")
+        val list = gson.fromJson<Any>(data , type) as ArrayList<VideoData>
+        return list
     }
 }

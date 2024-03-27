@@ -28,12 +28,6 @@ object Utils {
         } catch (ignored: Exception) {
         } // for now eat exceptions
         return ""
-        /*try {
-            // this is so Linux hack
-            return loadFileAsString("/sys/class/net/" +interfaceName + "/address").toUpperCase().trim();
-        } catch (IOException ex) {
-            return null;
-        }*/
     }
 
     /**

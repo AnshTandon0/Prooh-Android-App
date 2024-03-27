@@ -12,6 +12,7 @@ import com.androidants.sampleapp.common.SharedPreferencesClass
 import com.androidants.sampleapp.databinding.ActivitySplashBinding
 import com.androidants.sampleapp.ui.main.MainActivity
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlin.random.Random.Default.nextInt
 
@@ -36,6 +37,10 @@ class SplashActivity : AppCompatActivity() {
         checkInternetConnectionStatus()
     }
 
+    private fun initSharedPreferences() {
+        sharedPreferencesClass = SharedPreferencesClass(this@SplashActivity)
+    }
+
     private fun setViews() {
         binding.code.text = checkScreenCode()
 
@@ -44,18 +49,17 @@ class SplashActivity : AppCompatActivity() {
         }
     }
 
-    private fun initSharedPreferences() {
-        sharedPreferencesClass = SharedPreferencesClass(this@SplashActivity)
-    }
-
     private fun initViewModel() {
         viewModel = ViewModelProvider(this).get(SplashViewModel::class.java)
 
         viewModel.getInternetConnectionStatus.observe(this){
+            Log.d(Constants.TAG , it.toString())
             if ( it == true )
                 getVideoData()
-            else if ( sharedPreferencesClass.checkSuccessEmpty() )
+            else if ( sharedPreferencesClass.checkSuccessEmpty() ){
                 checkInternetConnectionStatus()
+                Log.d(Constants.TAG , "in shared pref")
+            }
             else
                 startMainActivity()
         }
@@ -84,13 +88,13 @@ class SplashActivity : AppCompatActivity() {
     }
 
     private fun checkInternetConnectionStatus() {
-        lifecycleScope.launch {
+        lifecycleScope.launch (Dispatchers.IO + Constants.coroutineExceptionHandler) {
             viewModel.internetConnectionStatus(this@SplashActivity)
         }
     }
 
     private fun getVideoData() {
-        lifecycleScope.launch {
+        lifecycleScope.launch(Dispatchers.IO + Constants.coroutineExceptionHandler)  {
             viewModel.getVideos(sharedPreferencesClass.getScreenCode())
         }
     }
