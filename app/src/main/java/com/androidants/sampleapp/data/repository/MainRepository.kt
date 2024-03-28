@@ -14,5 +14,5 @@ interface MainRepository {
 
     suspend fun getInternetConnectionStatus(context: Context) : Boolean
 
-    suspend fun postLogs ( screenId : String , logReport: LogReport ) : ArrayList<MyScreenVideos>
+    suspend fun postLogs ( screenId : String , logReport: LogReport ) : Response<ArrayList<MyScreenVideos>>
 }

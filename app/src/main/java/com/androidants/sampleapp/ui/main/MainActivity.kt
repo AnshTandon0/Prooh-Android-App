@@ -100,7 +100,6 @@ class MainActivity : AppCompatActivity() {
 
         viewModel.getInternetConnectionStatus.observe(this){
             internetConnection = it
-            checkInternetConnectionStatus()
             if ( it == true )
                 getVideoData()
             else
@@ -158,8 +157,10 @@ class MainActivity : AppCompatActivity() {
                 if ( file.name == videoData.filename )
                     exists = true
             }
-            if ( exists == false )
+            if ( exists == false ) {
+                sharedPreferencesClass.deleteSuccessId(file.name)
                 file.delete()
+            }
         }
     }
 
@@ -172,7 +173,9 @@ class MainActivity : AppCompatActivity() {
 
         for ( data in it.myScreenVideos )
         {
-            val newData = VideoData( cid = data.cid.toString() , type = data.fileType.toString() , url = data.video.toString() )
+            val type = data.fileType?.split("/")?.toTypedArray()
+
+            val newData = VideoData( cid = data.cid.toString() , type = type?.get(0).toString() , url = data.video.toString() )
 
             if( !data.duration.toString().isEmpty() )
                 newData.duration = data.duration.toString()
@@ -180,10 +183,10 @@ class MainActivity : AppCompatActivity() {
             when ( newData.type )
             {
                 Constants.TYPE_VIDEO -> {
-                    newData.filename = newData.cid + Constants.VIDEO_TYPE
+                    newData.filename = newData.cid + Constants.DOT + type?.get(1).toString()
                 }
                 Constants.TYPE_IMAGE -> {
-                    newData.filename = newData.cid + Constants.IMAGE_TYPE
+                    newData.filename = newData.cid + Constants.DOT + type?.get(1).toString()
                 }
                 Constants.TYPE_URL -> {
                     newData.address = data.video.toString()
@@ -191,15 +194,21 @@ class MainActivity : AppCompatActivity() {
                 }
             }
 
-            if ( !checkFileExists(newData.filename) && data.fileType != Constants.TYPE_URL)
+            if ( !checkFileExists(newData.filename) && data.fileType != Constants.TYPE_URL )
             {
-                lifecycleScope.launch(Dispatchers.IO + Constants.coroutineExceptionHandler){
-                    viewModel.downloadVideo(this@MainActivity , newData)
+                if (!sharedPreferencesClass.checkDownloadingIdExists(newData.filename)){
+                    sharedPreferencesClass.addDownloadingId(newData.filename)
+                    lifecycleScope.launch(Dispatchers.IO + Constants.coroutineExceptionHandler){
+                        viewModel.downloadVideo(this@MainActivity , newData)
+                    }
                 }
             }
             else{
+                Log.d(Constants.TAG , sharedPreferencesClass.checkDownloadingIdExists(newData.filename).toString())
                 newData.status = Constants.STATUS_DONE
                 newData.address = Constants.DOWNLOAD_FOLDER_PATH + newData.filename
+                sharedPreferencesClass.addSuccessId(newData.filename)
+                sharedPreferencesClass.deleteDownloadingId(newData.filename)
             }
 
             if ( data.atIndex.size == 0 )
@@ -220,6 +229,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun checkStatus()
     {
+        checkInternetConnectionStatus()
         if ( sharedPreferencesClass.checkSuccessEmpty() )
         {
             setupInitialVideo()
@@ -311,6 +321,7 @@ class MainActivity : AppCompatActivity() {
             arrayList[point].status = Constants.STATUS_DONE
             arrayList[point].address = Constants.DOWNLOAD_FOLDER_PATH + arrayList[point].filename
             sharedPreferencesClass.addSuccessId(arrayList[point].filename)
+            sharedPreferencesClass.deleteDownloadingId(arrayList[point].filename)
             return true
         }
         else if ( sharedPreferencesClass.checkFailureIdExists(arrayList[point].downloadId.toString()) )

@@ -53,7 +53,7 @@ class MainRepositoryImpl @Inject constructor(
         return false
     }
 
-    override suspend fun postLogs(screenId: String , logReport: LogReport): ArrayList<MyScreenVideos> {
+    override suspend fun postLogs(screenId: String , logReport: LogReport): Response<ArrayList<MyScreenVideos>> {
         return api.postLogs(screenId , logReport)
     }
 

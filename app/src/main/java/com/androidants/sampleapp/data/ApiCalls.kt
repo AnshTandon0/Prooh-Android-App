@@ -17,6 +17,6 @@ interface ApiCalls {
     suspend fun getVideos(@Path ("code") screenCode:String) : Response<GetVideoResponse>
 
     @PUT("/api/screens/enterplaybacklogs/{screenId}")
-    suspend fun postLogs(@Path ("screenId") screenId: String , @Body logReport: LogReport ) : ArrayList<MyScreenVideos>
+    suspend fun postLogs(@Path ("screenId") screenId: String , @Body logReport: LogReport ) : Response<ArrayList<MyScreenVideos>>
 
 }

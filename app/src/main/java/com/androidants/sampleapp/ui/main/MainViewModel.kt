@@ -1,8 +1,10 @@
 package com.androidants.sampleapp.ui.main
 
 import android.content.Context
+import android.util.Log
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import com.androidants.sampleapp.common.Constants
 import com.androidants.sampleapp.data.model.VideoData
 import com.androidants.sampleapp.data.model.log.LogReport
 import com.androidants.sampleapp.data.model.video.GetVideoResponse
@@ -53,7 +55,9 @@ class MainViewModel @Inject constructor(
 
     suspend fun postLogs ( screenId : String , logReport: LogReport )
     {
-        postLogsUseCase.invoke(screenId , logReport)
+        val response = postLogsUseCase.invoke(screenId , logReport)
+        Log.d(Constants.TAG , response.body().toString())
+
     }
 
 }

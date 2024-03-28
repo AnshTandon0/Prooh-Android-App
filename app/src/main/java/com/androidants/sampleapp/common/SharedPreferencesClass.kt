@@ -2,6 +2,7 @@ package com.androidants.sampleapp.common
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.util.Log
 import com.androidants.sampleapp.data.model.VideoData
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
@@ -14,6 +15,33 @@ class SharedPreferencesClass ( context: Context ) {
     }
     private val editor : SharedPreferences.Editor by lazy {
         sharedPreferences.edit()
+    }
+
+    fun addDownloadingId ( id : String )
+    {
+        val videoSet : MutableSet<String>? = sharedPreferences.getStringSet(Constants.SHARED_PREF_DOWNLOADING_ID_SET , mutableSetOf())
+        videoSet?.add(id)
+        editor.putStringSet(Constants.SHARED_PREF_DOWNLOADING_ID_SET , videoSet)
+        editor.commit()
+    }
+
+    fun deleteDownloadingId ( id : String )
+    {
+        val videoSet : MutableSet<String>? = sharedPreferences.getStringSet(Constants.SHARED_PREF_DOWNLOADING_ID_SET , mutableSetOf())
+        videoSet?.remove(id)
+        Log.d(Constants.TAG , "deleted")
+        Log.d(Constants.TAG , id)
+        Log.d(Constants.TAG , videoSet.toString())
+        editor.putStringSet(Constants.SHARED_PREF_DOWNLOADING_ID_SET , videoSet)
+        editor.commit()
+    }
+
+    fun checkDownloadingIdExists ( id : String ) : Boolean
+    {
+        val videoSet : MutableSet<String>? = sharedPreferences.getStringSet(Constants.SHARED_PREF_DOWNLOADING_ID_SET , mutableSetOf())
+        if ( videoSet?.contains(id) == true )
+            return true
+        return false
     }
 
     fun addSuccessId( id : String ) {

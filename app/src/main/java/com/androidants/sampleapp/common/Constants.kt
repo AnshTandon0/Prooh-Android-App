@@ -28,11 +28,10 @@ object Constants {
 
 
     // file type
-    val TYPE_VIDEO = "video/mp4"
-    val TYPE_IMAGE = "image/jpeg"
+    val TYPE_VIDEO = "video"
+    val TYPE_IMAGE = "image"
     val TYPE_URL = "url"
-    val VIDEO_TYPE = ".mp4"
-    val IMAGE_TYPE = ".jpeg"
+    val DOT = "."
 
 
     // shared preferences
@@ -41,8 +40,11 @@ object Constants {
     val SHARED_PREF_SCREEN_ID = "screen_id"
     val SHARED_PREF_SUCCESS_ID_SET = "success_download"
     val SHARED_PREF_FAILURE_ID_SET = "failure_download"
+    val SHARED_PREF_DOWNLOADING_ID_SET = "downloading_download"
     val SHARED_PREF_FILE_DATA = "file_data"
 
+
+    // coroutine exception
     val coroutineExceptionHandler = CoroutineExceptionHandler{_, throwable ->
         throwable.printStackTrace()
     }
