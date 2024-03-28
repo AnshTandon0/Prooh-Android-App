@@ -29,9 +29,6 @@ class SharedPreferencesClass ( context: Context ) {
     {
         val videoSet : MutableSet<String>? = sharedPreferences.getStringSet(Constants.SHARED_PREF_DOWNLOADING_ID_SET , mutableSetOf())
         videoSet?.remove(id)
-        Log.d(Constants.TAG , "deleted")
-        Log.d(Constants.TAG , id)
-        Log.d(Constants.TAG , videoSet.toString())
         editor.putStringSet(Constants.SHARED_PREF_DOWNLOADING_ID_SET , videoSet)
         editor.commit()
     }

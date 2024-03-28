@@ -56,8 +56,6 @@ class MainViewModel @Inject constructor(
     suspend fun postLogs ( screenId : String , logReport: LogReport )
     {
         val response = postLogsUseCase.invoke(screenId , logReport)
-        Log.d(Constants.TAG , response.body().toString())
-
     }
 
 }

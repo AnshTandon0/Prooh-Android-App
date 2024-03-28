@@ -23,9 +23,11 @@ import com.androidants.sampleapp.data.model.log.DeviceInfo
 import com.androidants.sampleapp.data.model.log.LogReport
 import com.androidants.sampleapp.data.model.video.GetVideoResponse
 import com.androidants.sampleapp.databinding.ActivityMainBinding
+import com.google.gson.JsonObject
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import org.json.JSONObject
 import java.io.File
 import java.util.Calendar
 
@@ -39,6 +41,7 @@ class MainActivity : AppCompatActivity() {
     private var arrayList = mutableListOf<VideoData>()
     private lateinit var logReport: LogReport
     private var internetConnection : Boolean = true
+    private var data : ArrayList<MutableMap<String , String>> = arrayListOf()
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -120,12 +123,14 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun postLogData() {
+        logReport.data.clear()
+        logReport.data.addAll(data)
         lifecycleScope.launch (Dispatchers.IO + Constants.coroutineExceptionHandler) {
             viewModel.postLogs(sharedPreferencesClass.getScreenId() , logReport)
         }
 
         Log.d(Constants.TAG , logReport.toString())
-        logReport.data.clear()
+        data.clear()
     }
 
     private fun createOfflineList() {
@@ -204,7 +209,6 @@ class MainActivity : AppCompatActivity() {
                 }
             }
             else{
-                Log.d(Constants.TAG , sharedPreferencesClass.checkDownloadingIdExists(newData.filename).toString())
                 newData.status = Constants.STATUS_DONE
                 newData.address = Constants.DOWNLOAD_FOLDER_PATH + newData.filename
                 sharedPreferencesClass.addSuccessId(newData.filename)
@@ -239,10 +243,11 @@ class MainActivity : AppCompatActivity() {
             if ( point >= arrayList.size )
             {
                 point = 0
+                Log.d(Constants.TAG , arrayList.size.toString())
+                Log.d(Constants.TAG , internetConnection.toString())
                 if ( internetConnection )
                 {
                     postLogData()
-                    getVideoData()
                 }
             }
             while ( point < arrayList.size )
@@ -265,7 +270,7 @@ class MainActivity : AppCompatActivity() {
         val map = mutableMapOf<String , String>()
         map.put(Calendar.getInstance().time.toString() , arrayList[point].cid)
         map.put("deviceInfo" , logReport.deviceInfo.toString())
-        logReport.data.add(map)
+        data.add(map)
 
         Log.d(Constants.TAG , arrayList[point].toString())
         when( arrayList[point].type )
