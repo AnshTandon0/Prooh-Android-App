@@ -1,10 +1,14 @@
 package com.androidants.sampleapp.ui.splash
 
+import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Bundle
 import android.os.CountDownTimer
 import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import com.androidants.sampleapp.common.Constants
@@ -32,9 +36,7 @@ class SplashActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         initSharedPreferences()
-        setViews()
-        initViewModel()
-        checkInternetConnectionStatus()
+        checkPermission()
     }
 
     private fun initSharedPreferences() {
@@ -107,5 +109,40 @@ class SplashActivity : AppCompatActivity() {
                 finish()
             }
         }.start()
+    }
+
+    private fun checkPermission() {
+        Log.d(Constants.TAG  , "Check Permission")
+        if (ContextCompat.checkSelfPermission(this@SplashActivity, Manifest.permission.WRITE_EXTERNAL_STORAGE)
+            != PackageManager.PERMISSION_GRANTED ) {
+            Log.d(Constants.TAG  , "Permission Not Given")
+            Log.d(Constants.TAG  , "Asking for Permission")
+            ActivityCompat.requestPermissions(this@SplashActivity,
+                arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE) ,0)
+        }
+        else
+        {
+            setViews()
+            initViewModel()
+            checkInternetConnectionStatus()
+            Log.d(Constants.TAG  , "Permission Given")
+        }
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == 0) {
+            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED)
+            {
+                setViews()
+                initViewModel()
+                checkInternetConnectionStatus()
+                Log.d(Constants.TAG  , "Permission Given")
+            }
+        }
     }
 }

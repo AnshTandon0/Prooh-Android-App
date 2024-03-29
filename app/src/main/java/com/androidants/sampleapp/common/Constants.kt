@@ -13,11 +13,6 @@ object Constants {
     val RANDOM_STRING_LENGTH = 6
 
 
-    // status
-    val STATUS_DOWNLOADING = "downloading"
-    val STATUS_DONE = "done"
-
-
     // folder paths
     val INITIAL_VIDEO_PATH = "android.resource://com.androidants.sampleapp/" + R.raw.sample
     val DOWNLOAD_FOLDER_PATH = "/storage/emulated/0/Download/"
@@ -31,6 +26,7 @@ object Constants {
     val TYPE_VIDEO = "video"
     val TYPE_IMAGE = "image"
     val TYPE_URL = "url"
+    val TYPE_YOUTUBE = "youtube"
     val DOT = "."
 
 

@@ -9,7 +9,7 @@ data class VideoData(
     var duration: String = "5" ,
     var url : String = "",
     var address : String = "" ,
-    var status : String = Constants.STATUS_DOWNLOADING,
     var filename : String = "" ,
-    var index : Int = 0
+    var index : Int = 0 ,
+    var filesize : Long = 0
 )

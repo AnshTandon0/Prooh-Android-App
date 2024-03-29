@@ -27,13 +27,15 @@ class DownloadCompleteReceiver : BroadcastReceiver() {
                     val status = cursor.getInt(cursor.getColumnIndex(DownloadManager.COLUMN_STATUS))
                     when (status) {
                         DownloadManager.STATUS_SUCCESSFUL -> {
-                            sharedPreferencesClass.addSuccessId(id.toString())
+                            sharedPreferencesClass.addSuccessId(cursor.getString(cursor.getColumnIndex(DownloadManager.COLUMN_TITLE)))
                         }
                         DownloadManager.STATUS_FAILED -> {
-                            sharedPreferencesClass.addFailureId(id.toString())
+                            sharedPreferencesClass.addFailureId(cursor.getString(cursor.getColumnIndex(DownloadManager.COLUMN_TITLE)))
                         }
                     }
                 }
+
+                cursor.close()
             }
 
         }

@@ -23,11 +23,9 @@ import com.androidants.sampleapp.data.model.log.DeviceInfo
 import com.androidants.sampleapp.data.model.log.LogReport
 import com.androidants.sampleapp.data.model.video.GetVideoResponse
 import com.androidants.sampleapp.databinding.ActivityMainBinding
-import com.google.gson.JsonObject
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import org.json.JSONObject
 import java.io.File
 import java.util.Calendar
 
@@ -49,12 +47,10 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-//        checkPermission()
         initializeLogReport()
         initSharedPreferences()
-        setupInitialVideo()
         initViewModel()
-        checkInternetConnectionStatus()
+        checkStatus()
 
         binding.videoView.setOnCompletionListener {
             checkStatus()
@@ -80,6 +76,7 @@ class MainActivity : AppCompatActivity() {
         binding.videoView.setVideoPath(Constants.INITIAL_VIDEO_PATH)
         binding.videoView.start()
         binding.videoView.setOnErrorListener { mediaPlayer, i, i2 ->
+            point ++
             checkStatus()
             return@setOnErrorListener true
         }
@@ -139,18 +136,6 @@ class MainActivity : AppCompatActivity() {
         arrayList.addAll(data)
     }
 
-    private fun checkFileExists (fileName : String) : Boolean {
-        val directoryPath = Constants.DOWNLOAD_FOLDER_PATH
-        val directory = File(directoryPath)
-
-        val files = directory.listFiles()?.filter { it.isFile }
-        files?.forEach { file ->
-            if (file.name == fileName)
-                return true
-        }
-        return false
-    }
-
     private fun deleteAdditionalFiles() {
         val directoryPath = Constants.DOWNLOAD_FOLDER_PATH
         val directory = File(directoryPath)
@@ -173,6 +158,7 @@ class MainActivity : AppCompatActivity() {
 
         sharedPreferencesClass.setScreenId(it.screen?.Id.toString())
 
+        Log.d(Constants.TAG  , "In create list")
         Log.d(Constants.TAG  , it.toString())
         val list = arrayListOf<VideoData>()
 
@@ -180,7 +166,7 @@ class MainActivity : AppCompatActivity() {
         {
             val type = data.fileType?.split("/")?.toTypedArray()
 
-            val newData = VideoData( cid = data.cid.toString() , type = type?.get(0).toString() , url = data.video.toString() )
+            val newData = VideoData( cid = data.cid.toString() , type = type?.get(0).toString() , url = data.video.toString() , filesize = data.fileSize?.toLong() ?: 0 )
 
             if( !data.duration.toString().isEmpty() )
                 newData.duration = data.duration.toString()
@@ -195,11 +181,13 @@ class MainActivity : AppCompatActivity() {
                 }
                 Constants.TYPE_URL -> {
                     newData.address = data.video.toString()
-                    newData.status = Constants.STATUS_DONE
+                }
+                Constants.TYPE_YOUTUBE -> {
+                    newData.address = data.video.toString()
                 }
             }
 
-            if ( !checkFileExists(newData.filename) && data.fileType != Constants.TYPE_URL )
+            if ( !sharedPreferencesClass.checkSuccessIdExists(newData.filename) )
             {
                 if (!sharedPreferencesClass.checkDownloadingIdExists(newData.filename)){
                     sharedPreferencesClass.addDownloadingId(newData.filename)
@@ -207,12 +195,17 @@ class MainActivity : AppCompatActivity() {
                         viewModel.downloadVideo(this@MainActivity , newData)
                     }
                 }
+                else if ( checkFileExists(newData.filename , newData.filesize) )
+                {
+                    newData.address = Constants.DOWNLOAD_FOLDER_PATH + newData.filename
+                    sharedPreferencesClass.deleteDownloadingId(newData.filename)
+                    sharedPreferencesClass.addSuccessId(newData.filename)
+                }
             }
-            else{
-                newData.status = Constants.STATUS_DONE
+            else if ( newData.address == "" ){
                 newData.address = Constants.DOWNLOAD_FOLDER_PATH + newData.filename
-                sharedPreferencesClass.addSuccessId(newData.filename)
                 sharedPreferencesClass.deleteDownloadingId(newData.filename)
+                sharedPreferencesClass.addSuccessId(newData.filename)
             }
 
             if ( data.atIndex.size == 0 )
@@ -225,17 +218,32 @@ class MainActivity : AppCompatActivity() {
             }
         }
         list.sortBy { it.index }
+        sharedPreferencesClass.saveFileData(list)
         arrayList.clear()
         arrayList.addAll(list)
-        sharedPreferencesClass.saveFileData(arrayList)
         deleteAdditionalFiles()
+    }
+
+    private fun checkFileExists (fileName : String , size : Long) : Boolean {
+        val directoryPath = Constants.DOWNLOAD_FOLDER_PATH
+        val directory = File(directoryPath)
+
+        val files = directory.listFiles()?.filter { it.isFile }
+        files?.forEach { file ->
+            val fileSize = file.length()/1024
+            if (file.name == fileName && fileSize == size )
+                return true
+        }
+        return false
     }
 
     private fun checkStatus()
     {
+        Log.d(Constants.TAG  , "In check status function")
         checkInternetConnectionStatus()
-        if ( sharedPreferencesClass.checkSuccessEmpty() )
+        if ( sharedPreferencesClass.checkSuccessEmpty() || arrayList.size == 0 )
         {
+            Log.d(Constants.TAG  , "Starting Default video")
             setupInitialVideo()
         }
         else
@@ -243,18 +251,20 @@ class MainActivity : AppCompatActivity() {
             if ( point >= arrayList.size )
             {
                 point = 0
-                Log.d(Constants.TAG , arrayList.size.toString())
-                Log.d(Constants.TAG , internetConnection.toString())
+                Log.d(Constants.TAG , "Resetting Point to 0")
                 if ( internetConnection )
                 {
+                    Log.d(Constants.TAG , "Posting log Data")
                     postLogData()
                 }
             }
             while ( point < arrayList.size )
             {
-                if ( arrayList[point].status == Constants.STATUS_DONE || checkFileDownloadStatus() )
+                Log.d(Constants.TAG  , sharedPreferencesClass.checkDownloadingIdExists(arrayList[point].filename).toString())
+                Log.d(Constants.TAG  , sharedPreferencesClass.checkSuccessIdExists(arrayList[point].filename).toString())
+                if ( arrayList[point].address != "" || checkFileDownloadStatus() )
                 {
-                    Log.d(Constants.TAG  , "Calling Set Data")
+                    Log.d(Constants.TAG  , "Calling Set Data To Views")
                     setDataToViews()
                     return
                 }
@@ -319,55 +329,26 @@ class MainActivity : AppCompatActivity() {
 
     private fun checkFileDownloadStatus() : Boolean
     {
-        Log.d(Constants.TAG  , "Check Status")
-        if(sharedPreferencesClass.checkSuccessIdExists(arrayList[point].downloadId.toString()))
+        Log.d(Constants.TAG  , "Checking File Download Status")
+        if(sharedPreferencesClass.checkSuccessIdExists(arrayList[point].filename))
         {
-            Log.d(Constants.TAG  , "Check Status Cnf")
-            arrayList[point].status = Constants.STATUS_DONE
+            Log.d(Constants.TAG  , "File Downloading Completed")
             arrayList[point].address = Constants.DOWNLOAD_FOLDER_PATH + arrayList[point].filename
             sharedPreferencesClass.addSuccessId(arrayList[point].filename)
             sharedPreferencesClass.deleteDownloadingId(arrayList[point].filename)
             return true
         }
-        else if ( sharedPreferencesClass.checkFailureIdExists(arrayList[point].downloadId.toString()) )
+        else if ( sharedPreferencesClass.checkFailureIdExists(arrayList[point].filename) )
         {
-            Log.d(Constants.TAG  , "Check Status failed")
+            Log.d(Constants.TAG  , "File downloading Failed")
             lifecycleScope.launch {
                 viewModel.downloadVideo(this@MainActivity , arrayList[point])
             }
-            sharedPreferencesClass.deleteFailureId(arrayList[point].downloadId.toString())
+            sharedPreferencesClass.deleteFailureId(arrayList[point].filename)
         }
-        Log.d(Constants.TAG  , "Check Status None")
+        Log.d(Constants.TAG  , "File still in downloading state")
         return false
     }
 
-    private fun checkPermission() {
-        Log.d(Constants.TAG  , "Check Status None")
-        if (ContextCompat.checkSelfPermission(this@MainActivity, Manifest.permission.WRITE_EXTERNAL_STORAGE)
-            != PackageManager.PERMISSION_GRANTED ) {
-            Log.d(Constants.TAG  , "Check Status None")
-            ActivityCompat.requestPermissions(this@MainActivity,
-                    arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE) ,0)
-        }
-        else
-        {
-            Log.d(Constants.TAG  , "Check Status")
-            setupInitialVideo()
-            initViewModel()
-        }
-    }
 
-    override fun onRequestPermissionsResult(
-        requestCode: Int,
-        permissions: Array<out String>,
-        grantResults: IntArray
-    ) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == 0) {
-            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                setupInitialVideo()
-                initViewModel()
-            }
-        }
-    }
 }

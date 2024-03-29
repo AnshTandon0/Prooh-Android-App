@@ -29,7 +29,7 @@ class MainRepositoryImpl @Inject constructor(
         val request = DownloadManager.Request(videoData.url.trim().toUri())
             .setMimeType(videoData.type)
             .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
-            .setTitle(videoData.cid)
+            .setTitle(videoData.filename)
             .setDestinationInExternalPublicDir( Environment.DIRECTORY_DOWNLOADS , videoData.filename )
         videoData.downloadId = downloadManager.enqueue(request)
         return videoData
