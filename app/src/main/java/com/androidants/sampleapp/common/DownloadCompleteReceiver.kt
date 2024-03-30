@@ -29,7 +29,7 @@ class DownloadCompleteReceiver : BroadcastReceiver() {
                         DownloadManager.STATUS_SUCCESSFUL -> {
                             sharedPreferencesClass.addSuccessId(cursor.getString(cursor.getColumnIndex(DownloadManager.COLUMN_TITLE)))
                         }
-                        DownloadManager.STATUS_FAILED -> {
+                        else -> {
                             sharedPreferencesClass.addFailureId(cursor.getString(cursor.getColumnIndex(DownloadManager.COLUMN_TITLE)))
                         }
                     }

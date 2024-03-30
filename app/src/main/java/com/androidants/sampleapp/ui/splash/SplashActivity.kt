@@ -18,6 +18,7 @@ import com.androidants.sampleapp.ui.main.MainActivity
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import java.io.File
 import kotlin.random.Random.Default.nextInt
 
 @AndroidEntryPoint
@@ -41,6 +42,7 @@ class SplashActivity : AppCompatActivity() {
 
     private fun initSharedPreferences() {
         sharedPreferencesClass = SharedPreferencesClass(this@SplashActivity)
+        syncDownloads()
     }
 
     private fun setViews() {
@@ -109,6 +111,28 @@ class SplashActivity : AppCompatActivity() {
                 finish()
             }
         }.start()
+    }
+
+    private fun syncDownloads() {
+        sharedPreferencesClass.deleteAllDownloadingId()
+        sharedPreferencesClass.deleteAllFailureId()
+        val set = mutableSetOf<String>()
+        set.addAll(sharedPreferencesClass.getAllSuccessId())
+
+        val directoryPath = Constants.DOWNLOAD_FOLDER_PATH
+        val directory = File(directoryPath)
+
+        val files = directory.listFiles()?.filter { it.isFile }
+        set.forEach { id ->
+            var exists = false
+            files?.forEach { file ->
+                if( file.name == id )
+                    exists = true
+            }
+            if ( exists == false ) {
+                sharedPreferencesClass.deleteSuccessId(id)
+            }
+        }
     }
 
     private fun checkPermission() {

@@ -1,8 +1,6 @@
 package com.androidants.sampleapp.ui.main
 
-import android.Manifest
 import android.annotation.SuppressLint
-import android.content.pm.PackageManager
 import android.graphics.BitmapFactory
 import android.os.Bundle
 import android.os.CountDownTimer
@@ -11,8 +9,6 @@ import android.util.Log
 import android.view.View
 import android.webkit.WebViewClient
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.app.ActivityCompat
-import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import com.androidants.sampleapp.common.Constants
@@ -27,7 +23,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.io.File
-import java.util.Calendar
+import java.util.*
 
 @AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
@@ -149,6 +145,8 @@ class MainActivity : AppCompatActivity() {
             }
             if ( exists == false ) {
                 sharedPreferencesClass.deleteSuccessId(file.name)
+                sharedPreferencesClass.deleteDownloadingId(file.name)
+                sharedPreferencesClass.deleteFailureId(file.name)
                 file.delete()
             }
         }
@@ -309,6 +307,12 @@ class MainActivity : AppCompatActivity() {
                 Log.d(Constants.TAG  , "Image Preview Start")
             }
             Constants.TYPE_URL -> {
+                if ( !internetConnection )
+                {
+                    point ++
+                    checkStatus()
+                    return
+                }
                 binding.imageView.visibility = View.GONE
                 binding.webView.visibility = View.VISIBLE
                 binding.videoView.visibility = View.GONE
@@ -350,5 +354,5 @@ class MainActivity : AppCompatActivity() {
         return false
     }
 
-
+    // Todo add code for desync part
 }

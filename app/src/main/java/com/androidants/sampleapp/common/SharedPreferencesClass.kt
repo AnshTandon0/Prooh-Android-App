@@ -62,6 +62,25 @@ class SharedPreferencesClass ( context: Context ) {
         editor.commit()
     }
 
+    fun deleteAllDownloadingId () {
+        val videoSet : MutableSet<String>? = sharedPreferences.getStringSet(Constants.SHARED_PREF_DOWNLOADING_ID_SET , mutableSetOf())
+        videoSet?.clear()
+        editor.putStringSet(Constants.SHARED_PREF_SUCCESS_ID_SET , videoSet)
+        editor.commit()
+    }
+
+    fun deleteAllFailureId () {
+        val videoSet : MutableSet<String>? = sharedPreferences.getStringSet(Constants.SHARED_PREF_FAILURE_ID_SET , mutableSetOf())
+        videoSet?.clear()
+        editor.putStringSet(Constants.SHARED_PREF_SUCCESS_ID_SET , videoSet)
+        editor.commit()
+    }
+
+    fun getAllSuccessId () : MutableSet<String> {
+        val videoSet : MutableSet<String>? = sharedPreferences.getStringSet(Constants.SHARED_PREF_FAILURE_ID_SET , mutableSetOf())
+        return videoSet ?: mutableSetOf()
+    }
+
     fun deleteFailureId ( id : String ) {
         val videoSet : MutableSet<String>? = sharedPreferences.getStringSet(Constants.SHARED_PREF_FAILURE_ID_SET, mutableSetOf())
         videoSet?.remove(id)
