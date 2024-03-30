@@ -14,7 +14,7 @@ object Constants {
 
 
     // folder paths
-    val INITIAL_VIDEO_PATH = "android.resource://com.androidants.sampleapp/" + R.raw.sample
+    val INITIAL_VIDEO_PATH = "android.resource://com.androidants.sampleapp/" + R.raw.initial
     val DOWNLOAD_FOLDER_PATH = "/storage/emulated/0/Download/"
 
 
