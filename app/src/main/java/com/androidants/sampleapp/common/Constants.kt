@@ -7,6 +7,7 @@ object Constants {
 
     // base url
     val BASE_URL = "https://api.justmonad.com/"
+    val DEFAULT_WEBVIEW_URL = "https://bafybeieusarrqnozo2avkc5bv2j6ltlrvoyzch7r2v4tqorgyhxnqzwmcu.ipfs.dweb.link/Screenshot%20%289%29.png"
 
 
     // screen code generation

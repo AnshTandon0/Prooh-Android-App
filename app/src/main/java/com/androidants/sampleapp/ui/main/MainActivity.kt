@@ -283,6 +283,7 @@ class MainActivity : AppCompatActivity() {
                 object : CountDownTimer(finalList[point].duration.toLong() * 1000, 1000){
                     override fun onTick(p0: Long){}
                     override fun onFinish() {
+                        binding.webView.loadUrl(Constants.DEFAULT_WEBVIEW_URL)
                         checkStatus()
                     }
                 }.start()
