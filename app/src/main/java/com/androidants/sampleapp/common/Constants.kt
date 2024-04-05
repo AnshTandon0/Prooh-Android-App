@@ -38,6 +38,7 @@ object Constants {
     val SHARED_PREF_FAILURE_ID_SET = "failure_download"
     val SHARED_PREF_DOWNLOADING_ID_SET = "downloading_download"
     val SHARED_PREF_FILE_DATA = "file_data"
+    val SHARED_PREF_LOG_REPORT = "log_report"
 
 
     // coroutine exception

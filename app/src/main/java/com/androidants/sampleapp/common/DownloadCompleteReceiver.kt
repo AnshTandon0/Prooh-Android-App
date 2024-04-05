@@ -28,9 +28,12 @@ class DownloadCompleteReceiver : BroadcastReceiver() {
                     when (status) {
                         DownloadManager.STATUS_SUCCESSFUL -> {
                             sharedPreferencesClass.addSuccessId(cursor.getString(cursor.getColumnIndex(DownloadManager.COLUMN_TITLE)))
+                            Log.d(Constants.TAG  , sharedPreferencesClass.getAllSuccessId().toString())
+                            sharedPreferencesClass.deleteDownloadingId(cursor.getString(cursor.getColumnIndex(DownloadManager.COLUMN_TITLE)))
                         }
                         else -> {
                             sharedPreferencesClass.addFailureId(cursor.getString(cursor.getColumnIndex(DownloadManager.COLUMN_TITLE)))
+                            sharedPreferencesClass.deleteDownloadingId(cursor.getString(cursor.getColumnIndex(DownloadManager.COLUMN_TITLE)))
                         }
                     }
                 }

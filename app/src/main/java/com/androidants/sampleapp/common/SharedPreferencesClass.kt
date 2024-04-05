@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import android.util.Log
 import com.androidants.sampleapp.data.model.VideoData
+import com.androidants.sampleapp.data.model.log.LogReport
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import java.lang.reflect.Type
@@ -142,5 +143,24 @@ class SharedPreferencesClass ( context: Context ) {
         val data = sharedPreferences.getString(Constants.SHARED_PREF_FILE_DATA , "")
         val list = gson.fromJson<Any>(data , type) as ArrayList<VideoData>
         return list
+    }
+
+    fun saveLogs (logReport: LogReport) {
+        val gson = Gson()
+        val data = gson.toJson(logReport)
+        editor.putString(Constants.SHARED_PREF_LOG_REPORT , data)
+        editor.commit()
+    }
+
+    fun checkLogs () : Boolean{
+        return sharedPreferences.contains(Constants.SHARED_PREF_LOG_REPORT)
+    }
+
+    fun getLogs () : LogReport {
+        val gson = Gson()
+        val type: Type = object : TypeToken<LogReport>() {}.type
+        val data = sharedPreferences.getString(Constants.SHARED_PREF_LOG_REPORT , "")
+        val logs = gson.fromJson<Any>(data , type) as LogReport
+        return logs
     }
 }

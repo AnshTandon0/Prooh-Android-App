@@ -13,6 +13,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import com.androidants.sampleapp.common.Constants
 import com.androidants.sampleapp.common.SharedPreferencesClass
+import com.androidants.sampleapp.data.model.VideoData
 import com.androidants.sampleapp.databinding.ActivitySplashBinding
 import com.androidants.sampleapp.ui.main.MainActivity
 import dagger.hilt.android.AndroidEntryPoint
@@ -42,7 +43,8 @@ class SplashActivity : AppCompatActivity() {
 
     private fun initSharedPreferences() {
         sharedPreferencesClass = SharedPreferencesClass(this@SplashActivity)
-        syncDownloads()
+        sharedPreferencesClass.deleteAllDownloadingId()
+        sharedPreferencesClass.deleteAllFailureId()
     }
 
     private fun setViews() {
@@ -60,7 +62,7 @@ class SplashActivity : AppCompatActivity() {
             Log.d(Constants.TAG , it.toString())
             if ( it == true )
                 getVideoData()
-            else if ( sharedPreferencesClass.checkSuccessEmpty() ){
+            else if ( checkDownloads() ){
                 checkInternetConnectionStatus()
                 Log.d(Constants.TAG , "in shared pref")
             }
@@ -74,6 +76,40 @@ class SplashActivity : AppCompatActivity() {
             else
                 startMainActivity()
         }
+    }
+
+    private fun checkInternetConnectionStatus() {
+        lifecycleScope.launch (Dispatchers.IO + Constants.coroutineExceptionHandler) {
+            viewModel.internetConnectionStatus(this@SplashActivity)
+        }
+    }
+
+    private fun getVideoData() {
+        lifecycleScope.launch(Dispatchers.IO + Constants.coroutineExceptionHandler)  {
+            viewModel.getVideos(sharedPreferencesClass.getScreenCode())
+        }
+    }
+
+    private fun checkDownloads() : Boolean {
+        val directoryPath = Constants.DOWNLOAD_FOLDER_PATH
+        val directory = File(directoryPath)
+
+        val data = sharedPreferencesClass.getFileData()
+        val files = directory.listFiles()?.filter { it.isFile }
+        var boolData = true
+        val arrayList = mutableListOf<VideoData>()
+
+        for ( videoData in data )
+        {
+            files?.forEach { file ->
+                if( file.name == videoData.filename && file.length() == videoData.filesize ) {
+                    boolData = false
+                    arrayList.add(videoData)
+                }
+            }
+        }
+        sharedPreferencesClass.saveFileData(arrayList)
+        return boolData
     }
 
     private fun checkScreenCode () : String {
@@ -91,18 +127,6 @@ class SplashActivity : AppCompatActivity() {
         return randomString
     }
 
-    private fun checkInternetConnectionStatus() {
-        lifecycleScope.launch (Dispatchers.IO + Constants.coroutineExceptionHandler) {
-            viewModel.internetConnectionStatus(this@SplashActivity)
-        }
-    }
-
-    private fun getVideoData() {
-        lifecycleScope.launch(Dispatchers.IO + Constants.coroutineExceptionHandler)  {
-            viewModel.getVideos(sharedPreferencesClass.getScreenCode())
-        }
-    }
-
     private fun startMainActivity() {
         object : CountDownTimer(2000, 1000){
             override fun onTick(p0: Long){}
@@ -111,28 +135,6 @@ class SplashActivity : AppCompatActivity() {
                 finish()
             }
         }.start()
-    }
-
-    private fun syncDownloads() {
-        sharedPreferencesClass.deleteAllDownloadingId()
-        sharedPreferencesClass.deleteAllFailureId()
-        val set = mutableSetOf<String>()
-        set.addAll(sharedPreferencesClass.getAllSuccessId())
-
-        val directoryPath = Constants.DOWNLOAD_FOLDER_PATH
-        val directory = File(directoryPath)
-
-        val files = directory.listFiles()?.filter { it.isFile }
-        set.forEach { id ->
-            var exists = false
-            files?.forEach { file ->
-                if( file.name == id )
-                    exists = true
-            }
-            if ( exists == false ) {
-                sharedPreferencesClass.deleteSuccessId(id)
-            }
-        }
     }
 
     private fun checkPermission() {
