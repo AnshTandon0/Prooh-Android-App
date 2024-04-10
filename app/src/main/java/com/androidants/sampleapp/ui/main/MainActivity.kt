@@ -12,6 +12,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import com.androidants.sampleapp.common.Constants
+import com.androidants.sampleapp.common.MyExceptionHandler
 import com.androidants.sampleapp.common.SharedPreferencesClass
 import com.androidants.sampleapp.common.Utils
 import com.androidants.sampleapp.data.model.VideoData
@@ -44,14 +45,13 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        Thread.setDefaultUncaughtExceptionHandler(MyExceptionHandler(this))
+
         initSharedPreferences()
         initializeLogReport()
         initViewModel()
         checkStatus()
 
-        binding.videoView.setOnCompletionListener {
-            checkStatus()
-        }
     }
 
     @SuppressLint("HardwareIds")
@@ -94,6 +94,10 @@ class MainActivity : AppCompatActivity() {
             point ++
             checkStatus()
             return@setOnErrorListener true
+        }
+
+        binding.videoView.setOnCompletionListener {
+            checkStatus()
         }
     }
 

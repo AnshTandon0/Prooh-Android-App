@@ -12,6 +12,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import com.androidants.sampleapp.common.Constants
+import com.androidants.sampleapp.common.MyExceptionHandler
 import com.androidants.sampleapp.common.SharedPreferencesClass
 import com.androidants.sampleapp.data.model.VideoData
 import com.androidants.sampleapp.databinding.ActivitySplashBinding
@@ -36,6 +37,8 @@ class SplashActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivitySplashBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        Thread.setDefaultUncaughtExceptionHandler(MyExceptionHandler(this))
 
         initSharedPreferences()
         checkPermission()
