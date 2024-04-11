@@ -20,6 +20,8 @@ import com.androidants.sampleapp.data.model.log.DeviceInfo
 import com.androidants.sampleapp.data.model.log.LogReport
 import com.androidants.sampleapp.data.model.video.GetVideoResponse
 import com.androidants.sampleapp.databinding.ActivityMainBinding
+import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.YouTubePlayer
+import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.listeners.AbstractYouTubePlayerListener
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -87,6 +89,7 @@ class MainActivity : AppCompatActivity() {
     private fun setupInitialVideo() {
         binding.imageView.visibility = View.GONE
         binding.webView.visibility = View.GONE
+        binding.youtubePlayer.visibility = View.GONE
         binding.videoView.visibility = View.VISIBLE
         binding.videoView.setVideoPath(Constants.INITIAL_VIDEO_PATH)
         binding.videoView.start()
@@ -131,6 +134,7 @@ class MainActivity : AppCompatActivity() {
                 if ( data.cid == it.cid ) {
                     data.downloadId = it.downloadId
                 }
+            Log.d(Constants.TAG  , "Download Manager Id")
             Log.d(Constants.TAG  , arrayList.toString())
         }
 
@@ -164,11 +168,13 @@ class MainActivity : AppCompatActivity() {
     private fun postLogData() {
         logReport.data.clear()
         logReport.data.addAll(sharedPreferencesClass.getLogs().data)
+        Log.d(Constants.TAG  , "Log Report")
         Log.d(Constants.TAG , logReport.toString())
         lifecycleScope.launch (Dispatchers.IO + Constants.coroutineExceptionHandler) {
             viewModel.postLogs(sharedPreferencesClass.getScreenId() , logReport)
         }
 
+        Log.d(Constants.TAG  , "Log Report")
         Log.d(Constants.TAG , logReport.toString())
         val logReport = sharedPreferencesClass.getLogs()
         logReport.data.clear()
@@ -239,18 +245,21 @@ class MainActivity : AppCompatActivity() {
         val logReport = sharedPreferencesClass.getLogs()
         logReport.data.add(map)
         sharedPreferencesClass.saveLogs(logReport)
+        Log.d(Constants.TAG  , "Adding Log Report")
         Log.d(Constants.TAG , logReport.toString())
     }
 
     private fun setDataToViews()
     {
         addLog()
+        Log.d(Constants.TAG  , "In Set Data to Views")
         Log.d(Constants.TAG , finalList[point].toString())
         when( finalList[point].type )
         {
             Constants.TYPE_VIDEO ->{
                 binding.imageView.visibility = View.GONE
                 binding.webView.visibility = View.GONE
+                binding.youtubePlayer.visibility = View.GONE
                 binding.videoView.visibility = View.VISIBLE
                 Log.d(Constants.TAG , finalList[point].address)
                 binding.videoView.setVideoPath(finalList[point].address)
@@ -260,6 +269,7 @@ class MainActivity : AppCompatActivity() {
             Constants.TYPE_IMAGE -> {
                 binding.imageView.visibility = View.VISIBLE
                 binding.webView.visibility = View.GONE
+                binding.youtubePlayer.visibility = View.GONE
                 binding.videoView.visibility = View.GONE
                 val file = File(finalList[point].address)
                 binding.imageView.setImageBitmap(BitmapFactory.decodeFile(file.absolutePath))
@@ -280,6 +290,7 @@ class MainActivity : AppCompatActivity() {
                 }
                 binding.imageView.visibility = View.GONE
                 binding.webView.visibility = View.VISIBLE
+                binding.youtubePlayer.visibility = View.GONE
                 binding.videoView.visibility = View.GONE
                 binding.webView.loadUrl(finalList[point].url)
                 binding.webView.getSettings().javaScriptEnabled = true
@@ -292,6 +303,31 @@ class MainActivity : AppCompatActivity() {
                     }
                 }.start()
                 Log.d(Constants.TAG  , "Url Preview Start")
+            }
+
+            Constants.TYPE_YOUTUBE -> {
+                if ( !internetConnection )
+                {
+                    point ++
+                    checkStatus()
+                    return
+                }
+                binding.imageView.visibility = View.GONE
+                binding.webView.visibility = View.GONE
+                binding.youtubePlayer.visibility = View.VISIBLE
+                binding.videoView.visibility = View.GONE
+                binding.youtubePlayer.addYouTubePlayerListener(object : AbstractYouTubePlayerListener() {
+                    override fun onReady(youTubePlayer: YouTubePlayer) {
+                        youTubePlayer.loadVideo(finalList[point].address, 0F)
+                    }
+                })
+                object : CountDownTimer(finalList[point].duration.toLong() * 1000, 1000){
+                    override fun onTick(p0: Long){}
+                    override fun onFinish() {
+                        checkStatus()
+                    }
+                }.start()
+                Log.d(Constants.TAG  , "You Tube Preview Start")
             }
         }
         point ++
@@ -357,6 +393,7 @@ class MainActivity : AppCompatActivity() {
         var i = 0
         val list = mutableListOf<VideoData>()
 
+        Log.d(Constants.TAG  , checkFileExists(arrayList[i]).toString())
         while ( i < arrayList.size && checkFileExists(arrayList[i])  )
         {
             Log.d(Constants.TAG  , "File exists")
@@ -384,6 +421,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun checkFileExists (videoData: VideoData) : Boolean {
 
+        Log.d(Constants.TAG  , "In Check File exists")
         if (videoData.type == Constants.TYPE_URL)
             return true
 
@@ -391,6 +429,7 @@ class MainActivity : AppCompatActivity() {
         val directory = File(directoryPath)
 
         val files = directory.listFiles()?.filter { it.isFile }
+        Log.d(Constants.TAG  , files.toString())
         files?.forEach { file ->
             val fileSize = file.length()
             Log.d(Constants.TAG  , fileSize.toString())
@@ -400,6 +439,4 @@ class MainActivity : AppCompatActivity() {
         }
         return false
     }
-
-    // Todo add code for desync part
 }
