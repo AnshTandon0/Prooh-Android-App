@@ -1,11 +1,14 @@
 package com.androidants.sampleapp.ui.splash
 
 import android.Manifest
+import android.app.Activity
 import android.content.Intent
+import android.content.Intent.FLAG_ACTIVITY_NEW_TASK
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.os.CountDownTimer
 import android.util.Log
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -22,6 +25,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.io.File
 import kotlin.random.Random.Default.nextInt
+
 
 @AndroidEntryPoint
 class SplashActivity : AppCompatActivity() {
@@ -42,12 +46,35 @@ class SplashActivity : AppCompatActivity() {
 
         initSharedPreferences()
         checkPermission()
+        checkInactivity()
+    }
+
+    private fun checkInactivity() {
+        object : CountDownTimer(120000, 1000){
+            override fun onTick(p0: Long){}
+            override fun onFinish() {
+                if (sharedPreferencesClass.getRestartStatus())
+                    restartApp()
+            }
+        }.start()
+    }
+
+    private fun restartApp () {
+        val intent = Intent(this, SplashActivity::class.java)
+        intent.addFlags(FLAG_ACTIVITY_NEW_TASK)
+        startActivity(intent)
+        if (this is Activity) {
+            (this as Activity).finish()
+        }
+
+        Runtime.getRuntime().exit(0)
     }
 
     private fun initSharedPreferences() {
         sharedPreferencesClass = SharedPreferencesClass(this@SplashActivity)
         sharedPreferencesClass.deleteAllDownloadingId()
         sharedPreferencesClass.deleteAllFailureId()
+        sharedPreferencesClass.saveRestartStatus(true)
     }
 
     private fun setViews() {
@@ -134,6 +161,7 @@ class SplashActivity : AppCompatActivity() {
         object : CountDownTimer(2000, 1000){
             override fun onTick(p0: Long){}
             override fun onFinish() {
+                sharedPreferencesClass.saveRestartStatus(false)
                 startActivity(Intent(this@SplashActivity , MainActivity::class.java))
                 finish()
             }

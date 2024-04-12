@@ -163,4 +163,13 @@ class SharedPreferencesClass ( context: Context ) {
         val logs = gson.fromJson<Any>(data , type) as LogReport
         return logs
     }
+
+    fun saveRestartStatus(restart : Boolean) {
+        editor.putBoolean(Constants.SHARED_PREF_RESTART_STATUS , restart)
+        editor.commit()
+    }
+
+    fun getRestartStatus() : Boolean {
+        return sharedPreferences.getBoolean(Constants.SHARED_PREF_RESTART_STATUS , false)
+    }
 }

@@ -19,6 +19,7 @@ import com.androidants.sampleapp.data.model.VideoData
 import com.androidants.sampleapp.data.model.log.DeviceInfo
 import com.androidants.sampleapp.data.model.log.LogReport
 import com.androidants.sampleapp.data.model.video.GetVideoResponse
+import com.androidants.sampleapp.data.model.video.MyScreenVideos
 import com.androidants.sampleapp.databinding.ActivityMainBinding
 import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.YouTubePlayer
 import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.listeners.AbstractYouTubePlayerListener
@@ -27,6 +28,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.io.File
 import java.util.*
+import kotlin.collections.ArrayList
 
 @AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
@@ -35,8 +37,10 @@ class MainActivity : AppCompatActivity() {
     private lateinit var viewModel: MainViewModel
     private lateinit var sharedPreferencesClass: SharedPreferencesClass
     private var point = 0
-    private var arrayList = mutableListOf<VideoData>()
+    private var activeCampaigns = mutableListOf<VideoData>()
     private var finalList  = mutableListOf<VideoData>()
+    private var pausedCampaigns = mutableListOf<VideoData>()
+    private var holdCampaigns = mutableListOf<VideoData>()
     private lateinit var logReport: LogReport
     private var internetConnection : Boolean = true
     private var logMap = mutableMapOf<String , String>()
@@ -121,21 +125,30 @@ class MainActivity : AppCompatActivity() {
             if ( it == null )
             {
                 finalList.clear()
-                arrayList.clear()
+                activeCampaigns.clear()
                 sharedPreferencesClass.saveFileData(finalList)
                 deleteAllFiles()
             }
-            it?.let {
-                createArrayList(it)
+            else {
+                sharedPreferencesClass.setScreenId(it.screen?.Id.toString())
+                it.myScreenVideos.let {
+                    createList(it , Constants.ACTIVE_CAMPAIGN_LIST)
+                }
+                it.holdCampaigns.let {
+                    createList(it , Constants.HOLD_CAMPAIGN_LIST)
+                }
+                it.pausedCampaigns.let {
+                    createList(it , Constants.PAUSED_CAMPAIGN_LIST)
+                }
             }
         }
         viewModel.downloadManagerId.observe(this) {
-            for ( data in arrayList )
+            for ( data in activeCampaigns )
                 if ( data.cid == it.cid ) {
                     data.downloadId = it.downloadId
                 }
             Log.d(Constants.TAG  , "Download Manager Id")
-            Log.d(Constants.TAG  , arrayList.toString())
+            Log.d(Constants.TAG  , activeCampaigns.toString())
         }
 
         viewModel.getInternetConnectionStatus.observe(this){
@@ -194,7 +207,17 @@ class MainActivity : AppCompatActivity() {
         val files = directory.listFiles()?.filter { it.isFile }
         files?.forEach { file ->
             var exists = false
-            arrayList.forEach { videoData ->
+            activeCampaigns.forEach { videoData ->
+                Log.d(Constants.TAG  , videoData.filename)
+                if ( !exists && file.name == videoData.filename )
+                    exists = true
+            }
+            holdCampaigns.forEach { videoData ->
+                Log.d(Constants.TAG  , videoData.filename)
+                if ( !exists && file.name == videoData.filename )
+                    exists = true
+            }
+            pausedCampaigns.forEach { videoData ->
                 Log.d(Constants.TAG  , videoData.filename)
                 if ( !exists && file.name == videoData.filename )
                     exists = true
@@ -333,18 +356,13 @@ class MainActivity : AppCompatActivity() {
         point ++
     }
 
-    private fun createArrayList(it : GetVideoResponse) {
-
-        sharedPreferencesClass.setScreenId(it.screen?.Id.toString())
-
-        Log.d(Constants.TAG  , "In create Array list")
-        Log.d(Constants.TAG  , it.toString())
+    private fun createList ( it : ArrayList<MyScreenVideos> , listType : String )
+    {
         val list = arrayListOf<VideoData>()
 
-        for ( data in it.myScreenVideos )
+        for ( data in it )
         {
             val type = data.fileType?.split("/")?.toTypedArray()
-
             val newData = VideoData( cid = data.cid.toString() , type = type?.get(0).toString() , url = data.video.toString() , filesize = data.fileSize?.toLong() ?: 0 )
 
             if( !data.duration.toString().isEmpty() )
@@ -382,24 +400,40 @@ class MainActivity : AppCompatActivity() {
             }
         }
         list.sortBy { it.index }
-        arrayList.clear()
-        arrayList.addAll(list)
-        deleteAdditionalFiles()
-        checkFileDownloadStatus()
+
+        when ( listType )
+        {
+            Constants.ACTIVE_CAMPAIGN_LIST -> {
+                activeCampaigns.clear()
+                activeCampaigns.addAll(list)
+                deleteAdditionalFiles()
+                checkActiveCampaigns()
+            }
+
+            Constants.HOLD_CAMPAIGN_LIST -> {
+                holdCampaigns.clear()
+                holdCampaigns.addAll(list)
+            }
+
+            Constants.PAUSED_CAMPAIGN_LIST -> {
+                pausedCampaigns.clear()
+                pausedCampaigns.addAll(list)
+            }
+        }
     }
 
-    private fun checkFileDownloadStatus()
-    {
+    private fun checkCampaigns() {
+
         var i = 0
         val list = mutableListOf<VideoData>()
 
-        Log.d(Constants.TAG  , checkFileExists(arrayList[i]).toString())
-        while ( i < arrayList.size && checkFileExists(arrayList[i])  )
+        Log.d(Constants.TAG  , checkFileExists(activeCampaigns[i]).toString())
+        while ( i < activeCampaigns.size && checkFileExists(activeCampaigns[i])  )
         {
             Log.d(Constants.TAG  , "File exists")
-            if( arrayList[i].address == "" )
-                arrayList[i].address = Constants.DOWNLOAD_FOLDER_PATH + arrayList[i].filename
-            list.add(arrayList[i])
+            if( activeCampaigns[i].address == "" )
+                activeCampaigns[i].address = Constants.DOWNLOAD_FOLDER_PATH + activeCampaigns[i].filename
+            list.add(activeCampaigns[i])
             i++
         }
 
@@ -407,15 +441,112 @@ class MainActivity : AppCompatActivity() {
         finalList.addAll(list)
         sharedPreferencesClass.saveFileData(list)
 
-        if ( i == arrayList.size )
+        if ( i == activeCampaigns.size ){
+            if ( holdCampaigns.size > 0 )
+                checkHoldCampaigns()
+            else if ( pausedCampaigns.size > 0 )
+                checkPausedCampaigns()
             return
+        }
 
-        if(!sharedPreferencesClass.checkDownloadingIdExists(arrayList[i].filename))
+        if(!sharedPreferencesClass.checkDownloadingIdExists(activeCampaigns[i].filename))
         {
             Log.d(Constants.TAG  , "Downloading file")
-            sharedPreferencesClass.addDownloadingId(arrayList[i].filename)
-            sharedPreferencesClass.deleteFailureId(arrayList[i].filename)
-            downloadVideo(arrayList[i])
+            sharedPreferencesClass.addDownloadingId(activeCampaigns[i].filename)
+            sharedPreferencesClass.deleteFailureId(activeCampaigns[i].filename)
+            downloadVideo(activeCampaigns[i])
+        }
+    }
+
+    private fun checkActiveCampaigns()
+    {
+        var i = 0
+        val list = mutableListOf<VideoData>()
+
+        Log.d(Constants.TAG  , checkFileExists(activeCampaigns[i]).toString())
+        while ( i < activeCampaigns.size && checkFileExists(activeCampaigns[i])  )
+        {
+            Log.d(Constants.TAG  , "File exists")
+            if( activeCampaigns[i].address == "" )
+                activeCampaigns[i].address = Constants.DOWNLOAD_FOLDER_PATH + activeCampaigns[i].filename
+            list.add(activeCampaigns[i])
+            i++
+        }
+
+        finalList.clear()
+        finalList.addAll(list)
+        sharedPreferencesClass.saveFileData(list)
+
+        if ( i == activeCampaigns.size ){
+            if ( holdCampaigns.size > 0 )
+                checkHoldCampaigns()
+            else if ( pausedCampaigns.size > 0 )
+                checkPausedCampaigns()
+            return
+        }
+
+        if(!sharedPreferencesClass.checkDownloadingIdExists(activeCampaigns[i].filename))
+        {
+            Log.d(Constants.TAG  , "Downloading file")
+            sharedPreferencesClass.addDownloadingId(activeCampaigns[i].filename)
+            sharedPreferencesClass.deleteFailureId(activeCampaigns[i].filename)
+            downloadVideo(activeCampaigns[i])
+        }
+    }
+
+    private fun checkHoldCampaigns( ){
+        var i = 0
+        val list = mutableListOf<VideoData>()
+
+        Log.d(Constants.TAG  , checkFileExists(holdCampaigns[i]).toString())
+        while ( i < holdCampaigns.size && checkFileExists(holdCampaigns[i])  )
+        {
+            Log.d(Constants.TAG  , "File exists")
+            if( holdCampaigns[i].address == "" )
+                holdCampaigns[i].address = Constants.DOWNLOAD_FOLDER_PATH + activeCampaigns[i].filename
+            list.add(holdCampaigns[i])
+            i++
+        }
+
+        if ( i == holdCampaigns.size ){
+            if ( pausedCampaigns.size > 0 )
+                checkPausedCampaigns()
+            return
+        }
+
+        if(!sharedPreferencesClass.checkDownloadingIdExists(holdCampaigns[i].filename))
+        {
+            Log.d(Constants.TAG  , "Downloading file")
+            sharedPreferencesClass.addDownloadingId(holdCampaigns[i].filename)
+            sharedPreferencesClass.deleteFailureId(holdCampaigns[i].filename)
+            downloadVideo(holdCampaigns[i])
+        }
+    }
+
+    private fun checkPausedCampaigns( ){
+        var i = 0
+        val list = mutableListOf<VideoData>()
+
+        Log.d(Constants.TAG  , checkFileExists(pausedCampaigns[i]).toString())
+        while ( i < pausedCampaigns.size && checkFileExists(pausedCampaigns[i])  )
+        {
+            Log.d(Constants.TAG  , "File exists")
+            if( pausedCampaigns[i].address == "" )
+                pausedCampaigns[i].address = Constants.DOWNLOAD_FOLDER_PATH + activeCampaigns[i].filename
+            list.add(pausedCampaigns[i])
+            i++
+        }
+
+        if ( i == pausedCampaigns.size ){
+            return
+        }
+
+        if(!sharedPreferencesClass.checkDownloadingIdExists(pausedCampaigns[i].filename))
+        {
+            Log.d(Constants.TAG  , "Downloading file")
+            sharedPreferencesClass.addDownloadingId(pausedCampaigns[i].filename)
+            sharedPreferencesClass.deleteFailureId(pausedCampaigns[i].filename)
+            downloadVideo(pausedCampaigns[i])
         }
     }
 
