@@ -42,27 +42,6 @@ class SharedPreferencesClass ( context: Context ) {
         return false
     }
 
-    fun addSuccessId( id : String ) {
-        val videoSet : MutableSet<String>? = sharedPreferences.getStringSet(Constants.SHARED_PREF_SUCCESS_ID_SET , mutableSetOf())
-        videoSet?.add(id)
-        editor.putStringSet(Constants.SHARED_PREF_SUCCESS_ID_SET , videoSet)
-        editor.commit()
-    }
-
-    fun addFailureId( id : String ) {
-        val videoSet : MutableSet<String>? = sharedPreferences.getStringSet(Constants.SHARED_PREF_FAILURE_ID_SET , mutableSetOf())
-        videoSet?.add(id)
-        editor.putStringSet(Constants.SHARED_PREF_SUCCESS_ID_SET , videoSet)
-        editor.commit()
-    }
-
-    fun deleteSuccessId ( id : String ) {
-        val videoSet : MutableSet<String>? = sharedPreferences.getStringSet(Constants.SHARED_PREF_SUCCESS_ID_SET , mutableSetOf())
-        videoSet?.remove(id)
-        editor.putStringSet(Constants.SHARED_PREF_SUCCESS_ID_SET , videoSet)
-        editor.commit()
-    }
-
     fun deleteAllDownloadingId () {
         val videoSet : MutableSet<String>? = sharedPreferences.getStringSet(Constants.SHARED_PREF_DOWNLOADING_ID_SET , mutableSetOf())
         videoSet?.clear()
@@ -70,20 +49,20 @@ class SharedPreferencesClass ( context: Context ) {
         editor.commit()
     }
 
-    fun deleteAllFailureId () {
+    fun getAllDownloadingIdSize () : Int {
         val videoSet : MutableSet<String>? = sharedPreferences.getStringSet(Constants.SHARED_PREF_FAILURE_ID_SET , mutableSetOf())
-        videoSet?.clear()
+        return videoSet?.size ?: 0
+    }
+
+    fun addSuccessId( id : String ) {
+        val videoSet : MutableSet<String>? = sharedPreferences.getStringSet(Constants.SHARED_PREF_SUCCESS_ID_SET , mutableSetOf())
+        videoSet?.add(id)
         editor.putStringSet(Constants.SHARED_PREF_SUCCESS_ID_SET , videoSet)
         editor.commit()
     }
 
-    fun getAllSuccessId () : MutableSet<String> {
-        val videoSet : MutableSet<String>? = sharedPreferences.getStringSet(Constants.SHARED_PREF_FAILURE_ID_SET , mutableSetOf())
-        return videoSet ?: mutableSetOf()
-    }
-
-    fun deleteFailureId ( id : String ) {
-        val videoSet : MutableSet<String>? = sharedPreferences.getStringSet(Constants.SHARED_PREF_FAILURE_ID_SET, mutableSetOf())
+    fun deleteSuccessId ( id : String ) {
+        val videoSet : MutableSet<String>? = sharedPreferences.getStringSet(Constants.SHARED_PREF_SUCCESS_ID_SET , mutableSetOf())
         videoSet?.remove(id)
         editor.putStringSet(Constants.SHARED_PREF_SUCCESS_ID_SET , videoSet)
         editor.commit()
@@ -101,6 +80,27 @@ class SharedPreferencesClass ( context: Context ) {
         if ( videoSet?.size == 0 )
             return true
         return false
+    }
+
+    fun addFailureId( id : String ) {
+        val videoSet : MutableSet<String>? = sharedPreferences.getStringSet(Constants.SHARED_PREF_FAILURE_ID_SET , mutableSetOf())
+        videoSet?.add(id)
+        editor.putStringSet(Constants.SHARED_PREF_SUCCESS_ID_SET , videoSet)
+        editor.commit()
+    }
+
+    fun deleteAllFailureId () {
+        val videoSet : MutableSet<String>? = sharedPreferences.getStringSet(Constants.SHARED_PREF_FAILURE_ID_SET , mutableSetOf())
+        videoSet?.clear()
+        editor.putStringSet(Constants.SHARED_PREF_SUCCESS_ID_SET , videoSet)
+        editor.commit()
+    }
+
+    fun deleteFailureId ( id : String ) {
+        val videoSet : MutableSet<String>? = sharedPreferences.getStringSet(Constants.SHARED_PREF_FAILURE_ID_SET, mutableSetOf())
+        videoSet?.remove(id)
+        editor.putStringSet(Constants.SHARED_PREF_SUCCESS_ID_SET , videoSet)
+        editor.commit()
     }
 
     fun checkFailureIdExists ( id: String ) : Boolean {
