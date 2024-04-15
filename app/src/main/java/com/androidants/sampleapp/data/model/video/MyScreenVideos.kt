@@ -8,6 +8,7 @@ data class MyScreenVideos (
     @SerializedName("additionalInfo"    ) var additionalInfo    : AdditionalInfo?   = AdditionalInfo(),
     @SerializedName("_id"               ) var Id                : String?           = null,
     @SerializedName("media"             ) var media             : String?           = null,
+    @SerializedName("awsURL"            ) var awsUrl            : String?           = null ,
     @SerializedName("video"             ) var video             : String?           = null,
     @SerializedName("cid"               ) var cid               : String?           = null,
     @SerializedName("thumbnail"         ) var thumbnail         : String?           = null,

@@ -8,7 +8,6 @@ import android.content.pm.PackageManager
 import android.os.Bundle
 import android.os.CountDownTimer
 import android.util.Log
-import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -89,12 +88,12 @@ class SplashActivity : AppCompatActivity() {
         viewModel = ViewModelProvider(this).get(SplashViewModel::class.java)
 
         viewModel.getInternetConnectionStatus.observe(this){
-            Log.d(Constants.TAG , it.toString())
+            Log.d(Constants.TAG_NORMAL , it.toString())
             if ( it == true )
                 getVideoData()
             else if ( checkDownloads() ){
                 checkInternetConnectionStatus()
-                Log.d(Constants.TAG , "in shared pref")
+                Log.d(Constants.TAG_NORMAL , "in shared pref")
             }
             else
                 startMainActivity()
@@ -169,11 +168,11 @@ class SplashActivity : AppCompatActivity() {
     }
 
     private fun checkPermission() {
-        Log.d(Constants.TAG  , "Check Permission")
+        Log.d(Constants.TAG_NORMAL  , "Check Permission")
         if (ContextCompat.checkSelfPermission(this@SplashActivity, Manifest.permission.WRITE_EXTERNAL_STORAGE)
             != PackageManager.PERMISSION_GRANTED ) {
-            Log.d(Constants.TAG  , "Permission Not Given")
-            Log.d(Constants.TAG  , "Asking for Permission")
+            Log.d(Constants.TAG_NORMAL  , "Permission Not Given")
+            Log.d(Constants.TAG_NORMAL  , "Asking for Permission")
             ActivityCompat.requestPermissions(this@SplashActivity,
                 arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE) ,0)
         }
@@ -182,7 +181,7 @@ class SplashActivity : AppCompatActivity() {
             setViews()
             initViewModel()
             checkInternetConnectionStatus()
-            Log.d(Constants.TAG  , "Permission Given")
+            Log.d(Constants.TAG_NORMAL  , "Permission Given")
         }
     }
 
@@ -198,7 +197,7 @@ class SplashActivity : AppCompatActivity() {
                 setViews()
                 initViewModel()
                 checkInternetConnectionStatus()
-                Log.d(Constants.TAG  , "Permission Given")
+                Log.d(Constants.TAG_NORMAL  , "Permission Given")
             }
         }
     }

@@ -20,7 +20,8 @@ object Constants {
 
 
     // tag for log
-    val TAG = "MAIN ACTIVITY VINCIIS"
+    val TAG_NORMAL = "MAIN ACTIVITY VINCIIS"
+    val TAG_ERROR = "MAIN ACTIVITY ERROR"
 
 
     // file type
