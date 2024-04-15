@@ -168,7 +168,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun getVideoData() {
         lifecycleScope.launch (Dispatchers.IO + Constants.coroutineExceptionHandler) {
-            viewModel.getVideos(sharedPreferencesClass.getScreenCode())
+            viewModel.getVideos("9k53wb")
         }
     }
 
@@ -224,7 +224,6 @@ class MainActivity : AppCompatActivity() {
             }
             if ( exists == false || file.length() == 0L ) {
                 Log.d(Constants.TAG  , "Deleting file")
-                Toast.makeText(this@MainActivity , "deleted" , Toast.LENGTH_LONG).show()
                 Log.d(Constants.TAG  , file.name)
                 sharedPreferencesClass.deleteSuccessId(file.name)
                 sharedPreferencesClass.deleteDownloadingId(file.name)
@@ -237,7 +236,6 @@ class MainActivity : AppCompatActivity() {
     private fun checkStatus()
     {
         Log.d(Constants.TAG  , "In check status function")
-        checkInternetConnectionStatus()
         if ( finalList.size == 0 ) {
             Log.d(Constants.TAG  , "Starting Default video")
             setupInitialVideo()
@@ -255,6 +253,7 @@ class MainActivity : AppCompatActivity() {
             setDataToViews()
             Log.d(Constants.TAG , "Setting Data To Views")
         }
+        checkInternetConnectionStatus()
     }
 
     private fun addLog () {
@@ -483,12 +482,12 @@ class MainActivity : AppCompatActivity() {
                 list.add(holdCampaigns[i])
                 i++
             }
-            else if ( sharedPreferencesClass.getAllDownloadingIdSize() < 2 &&
+            else if ( sharedPreferencesClass.getAllDownloadingIdSize() < 1 &&
                 !sharedPreferencesClass.checkDownloadingIdExists(holdCampaigns[i].filename) ) {
                 Log.d(Constants.TAG  , "Downloading file")
+                downloadVideo(holdCampaigns[i])
                 sharedPreferencesClass.addDownloadingId(holdCampaigns[i].filename)
                 sharedPreferencesClass.deleteFailureId(holdCampaigns[i].filename)
-                downloadVideo(holdCampaigns[i])
             }
         }
 

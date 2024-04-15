@@ -8,6 +8,7 @@ import android.os.Environment
 import android.util.Log
 import androidx.core.net.toUri
 import com.androidants.sampleapp.common.Constants
+import com.androidants.sampleapp.common.SharedPreferencesClass
 import com.androidants.sampleapp.data.ApiCalls
 import com.androidants.sampleapp.data.model.VideoData
 import com.androidants.sampleapp.data.model.log.LogReport
@@ -26,7 +27,15 @@ class MainRepositoryImpl @Inject constructor(
 
     override suspend fun downloadVideo(context: Context , videoData: VideoData): VideoData {
         val downloadManager = context.getSystemService(DownloadManager::class.java)
-        val request = DownloadManager.Request(videoData.url.trim().toUri())
+        var urlDownload = videoData.url.trim().toUri()
+        val sharedPreferencesClass = SharedPreferencesClass(context)
+
+        if ( sharedPreferencesClass.checkFailureIdExists(videoData.filename) && videoData.awsUrl != "" )
+        {
+            urlDownload = videoData.awsUrl.trim().toUri()
+        }
+
+        val request = DownloadManager.Request(urlDownload)
             .setMimeType(videoData.type)
             .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
             .setTitle(videoData.filename)
