@@ -22,6 +22,7 @@ import com.androidants.sampleapp.data.model.video.MyScreenVideos
 import com.androidants.sampleapp.databinding.ActivityMainBinding
 import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.YouTubePlayer
 import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.listeners.AbstractYouTubePlayerListener
+import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.listeners.YouTubePlayerListener
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -29,6 +30,8 @@ import java.io.File
 import java.util.*
 import java.util.regex.Matcher
 import java.util.regex.Pattern
+import kotlin.collections.ArrayList
+
 
 @AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
@@ -57,7 +60,6 @@ class MainActivity : AppCompatActivity() {
         initializeLogReport()
         initViewModel()
         checkStatus()
-        checkInternetConnectionStatus()
     }
 
     private fun initSharedPreferences() {
@@ -158,6 +160,20 @@ class MainActivity : AppCompatActivity() {
             else
                 createOfflineList()
         }
+
+        viewModel.checkFileExists.observe(this) {
+
+            if ( it.first ) {
+                sharedPreferencesClass.addSuccessId(it.second.filename)
+            } else if ( sharedPreferencesClass.getAllDownloadingIdSize() < 2 &&
+                !sharedPreferencesClass.checkDownloadingIdExists(it.second.filename) )
+            {
+                Log.d(Constants.TAG_NORMAL  , "Downloading file")
+                sharedPreferencesClass.addDownloadingId(it.second.filename)
+                sharedPreferencesClass.deleteFailureId(it.second.filename)
+                downloadVideo(it.second)
+            }
+        }
     }
 
     private fun checkInternetConnectionStatus() {
@@ -175,6 +191,19 @@ class MainActivity : AppCompatActivity() {
     private fun downloadVideo(videoData: VideoData){
         lifecycleScope.launch (Dispatchers.IO + Constants.coroutineExceptionHandler) {
             viewModel.downloadVideo(this@MainActivity , videoData)
+        }
+    }
+
+    private fun checkFileExists (videoData: VideoData)
+    {
+        lifecycleScope.launch (Dispatchers.IO + Constants.coroutineExceptionHandler) {
+            viewModel.checkFileExists(this@MainActivity , videoData)
+        }
+    }
+
+    private fun deleteAdditionalFiles() {
+        lifecycleScope.launch (Dispatchers.IO + Constants.coroutineExceptionHandler) {
+            viewModel.deleteAdditionalFiles(this@MainActivity , activeCampaigns as ArrayList<VideoData>, holdCampaigns as ArrayList<VideoData> , holdCampaigns as ArrayList<VideoData>)
         }
     }
 
@@ -200,45 +229,13 @@ class MainActivity : AppCompatActivity() {
         finalList.addAll(data)
     }
 
-    private fun deleteAdditionalFiles() {
-        val directoryPath = Constants.DOWNLOAD_FOLDER_PATH
-        val directory = File(directoryPath)
-
-        val files = directory.listFiles()?.filter { it.isFile }
-        files?.forEach { file ->
-            var exists = false
-            activeCampaigns.forEach { videoData ->
-                Log.d(Constants.TAG_NORMAL  , videoData.filename)
-                if ( !exists && file.name == videoData.filename )
-                    exists = true
-            }
-            holdCampaigns.forEach { videoData ->
-                Log.d(Constants.TAG_NORMAL  , videoData.filename)
-                if ( !exists && file.name == videoData.filename )
-                    exists = true
-            }
-            pausedCampaigns.forEach { videoData ->
-                Log.d(Constants.TAG_NORMAL  , videoData.filename)
-                if ( !exists && file.name == videoData.filename )
-                    exists = true
-            }
-            if ( exists == false || file.length() == 0L ) {
-                Log.d(Constants.TAG_NORMAL  , "Deleting file")
-                Log.d(Constants.TAG_NORMAL  , file.name)
-                sharedPreferencesClass.deleteSuccessId(file.name)
-                sharedPreferencesClass.deleteDownloadingId(file.name)
-                sharedPreferencesClass.deleteFailureId(file.name)
-                file.delete()
-            }
-        }
-    }
-
     private fun checkStatus()
     {
         Log.d(Constants.TAG_NORMAL  , "In check status function")
         if ( finalList.size == 0 ) {
             Log.d(Constants.TAG_NORMAL  , "Starting Default video")
             setupInitialVideo()
+            checkInternetConnectionStatus()
         }
         else {
             if ( point >= finalList.size ) {
@@ -276,7 +273,7 @@ class MainActivity : AppCompatActivity() {
     {
         addLog()
         Log.d(Constants.TAG_NORMAL  , "In Set Data to Views")
-        Log.d(Constants.TAG_NORMAL , finalList[point].toString())
+        Log.d(Constants.TAG_NORMAL , finalList.toString())
         when( finalList[point].type )
         {
             Constants.TYPE_VIDEO ->{
@@ -339,23 +336,29 @@ class MainActivity : AppCompatActivity() {
                 binding.webView.visibility = View.GONE
                 binding.youtubePlayer.visibility = View.VISIBLE
                 binding.videoView.visibility = View.GONE
-                lifecycle.addObserver(binding.youtubePlayer)
+                Log.d(Constants.TAG_NORMAL  , finalList.toString())
+                Log.d(Constants.TAG_NORMAL  , point.toString())
 
-                binding.youtubePlayer.addYouTubePlayerListener(object : AbstractYouTubePlayerListener() {
+                val listener: YouTubePlayerListener = object : AbstractYouTubePlayerListener() {
                     override fun onReady(youTubePlayer: YouTubePlayer) {
-                        youTubePlayer.loadVideo(finalList[point].address, 0F)
+                        Log.d(Constants.TAG_NORMAL  , "YouTube Preview Start")
+                        Log.d(Constants.TAG_NORMAL  , point.toString())
+                        youTubePlayer.loadVideo(finalList[point-1].address, 0F)
                         youTubePlayer.play()
                     }
 
                     override fun onVideoDuration(youTubePlayer: YouTubePlayer, duration: Float) {
                         super.onVideoDuration(youTubePlayer, duration)
-                        checkStatus()
                     }
-                })
+                }
+
+                binding.youtubePlayer.initialize(listener)
+                lifecycle.addObserver(binding.youtubePlayer)
+
                 object : CountDownTimer(finalList[point].duration.toLong() * 1000, 1000){
                     override fun onTick(p0: Long){}
                     override fun onFinish() {
-
+                        checkStatus()
                     }
                 }.start()
                 Log.d(Constants.TAG_NORMAL  , "You Tube Preview Start")
@@ -404,7 +407,8 @@ class MainActivity : AppCompatActivity() {
             for ( id in data.atIndex )
             {
                 newData.index = id
-                list.add(newData)
+                val tempData = newData.copy()
+                list.add(tempData)
             }
         }
         list.sortBy { it.index }
@@ -438,19 +442,14 @@ class MainActivity : AppCompatActivity() {
         Log.d(Constants.TAG_NORMAL  , checkFileExists(activeCampaigns[i]).toString())
         while ( i < activeCampaigns.size )
         {
-            if ( checkFileExists(activeCampaigns[i]) ) {
+            if ( sharedPreferencesClass.checkSuccessIdExists(activeCampaigns[i].filename) ) {
                 Log.d(Constants.TAG_NORMAL  , "File exists")
                 if( activeCampaigns[i].address == "" )
                     activeCampaigns[i].address = Constants.DOWNLOAD_FOLDER_PATH + activeCampaigns[i].filename
                 list.add(activeCampaigns[i])
             }
-            else if (sharedPreferencesClass.getAllDownloadingIdSize() < 2 &&
-                !sharedPreferencesClass.checkDownloadingIdExists(activeCampaigns[i].filename)) {
-                Log.d(Constants.TAG_NORMAL  , "Downloading file")
-                sharedPreferencesClass.addDownloadingId(activeCampaigns[i].filename)
-                sharedPreferencesClass.deleteFailureId(activeCampaigns[i].filename)
-                downloadVideo(activeCampaigns[i])
-            }
+            else
+                checkFileExists(activeCampaigns[i])
             i++
         }
 
@@ -467,28 +466,24 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun checkHoldCampaigns(  ){
+    private fun checkHoldCampaigns()
+    {
         var i = 0
         val list = mutableListOf<VideoData>()
 
         Log.d(Constants.TAG_NORMAL  , checkFileExists(holdCampaigns[i]).toString())
         while ( i < holdCampaigns.size )
         {
-            if ( checkFileExists(holdCampaigns[i]) )
+            if ( sharedPreferencesClass.checkSuccessIdExists(holdCampaigns[i].filename) )
             {
                 Log.d(Constants.TAG_NORMAL  , "File exists")
                 if( holdCampaigns[i].address == "" )
                     holdCampaigns[i].address = Constants.DOWNLOAD_FOLDER_PATH + holdCampaigns[i].filename
                 list.add(holdCampaigns[i])
-                i++
             }
-            else if ( sharedPreferencesClass.getAllDownloadingIdSize() < 2 &&
-                !sharedPreferencesClass.checkDownloadingIdExists(holdCampaigns[i].filename) ) {
-                Log.d(Constants.TAG_NORMAL  , "Downloading file")
-                downloadVideo(holdCampaigns[i])
-                sharedPreferencesClass.addDownloadingId(holdCampaigns[i].filename)
-                sharedPreferencesClass.deleteFailureId(holdCampaigns[i].filename)
-            }
+            else
+                checkFileExists(holdCampaigns[i])
+            i++
         }
 
         if ( list.size == holdCampaigns.size ){
@@ -498,29 +493,24 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun checkPausedCampaigns(){
+    private fun checkPausedCampaigns()
+    {
         var i = 0
         val list = mutableListOf<VideoData>()
 
         Log.d(Constants.TAG_NORMAL  , checkFileExists(pausedCampaigns[i]).toString())
         while ( i < pausedCampaigns.size )
         {
-            if ( checkFileExists(pausedCampaigns[i]) )
+            if ( sharedPreferencesClass.checkSuccessIdExists(pausedCampaigns[i].filename) )
             {
                 Log.d(Constants.TAG_NORMAL  , "File exists")
                 if( pausedCampaigns[i].address == "" )
                     pausedCampaigns[i].address = Constants.DOWNLOAD_FOLDER_PATH + pausedCampaigns[i].filename
                 list.add(pausedCampaigns[i])
-                i++
             }
-            else if ( sharedPreferencesClass.getAllDownloadingIdSize() < 2 &&
-                !sharedPreferencesClass.checkDownloadingIdExists(pausedCampaigns[i].filename) ) {
-                Log.d(Constants.TAG_NORMAL  , "Downloading file")
-                sharedPreferencesClass.addDownloadingId(pausedCampaigns[i].filename)
-                sharedPreferencesClass.deleteFailureId(pausedCampaigns[i].filename)
-                downloadVideo(pausedCampaigns[i])
-            }
-
+            else
+                checkFileExists(pausedCampaigns[i])
+            i++
         }
 
         if ( list.size == pausedCampaigns.size ){
@@ -528,30 +518,8 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun checkFileExists (videoData: VideoData) : Boolean {
-
-        Log.d(Constants.TAG_NORMAL  , "In Check File exists")
-        if (videoData.type == Constants.TYPE_URL || videoData.type == Constants.TYPE_YOUTUBE)
-            return true
-
-        val directoryPath = Constants.DOWNLOAD_FOLDER_PATH
-        val directory = File(directoryPath)
-
-        val files = directory.listFiles()?.filter { it.isFile }
-        Log.d(Constants.TAG_NORMAL  , files.toString())
-        files?.forEach { file ->
-            val fileSize = file.length()
-            Log.d(Constants.TAG_NORMAL  , fileSize.toString())
-            Log.d(Constants.TAG_NORMAL  , videoData.filesize.toString())
-            if (file.name == videoData.filename && fileSize == videoData.filesize ) {
-                sharedPreferencesClass.deleteDownloadingId(videoData.filename)
-                return true
-            }
-        }
-        return false
-    }
-
-    private fun getYouTubeId(youTubeUrl: String): String? {
+    private fun getYouTubeId(youTubeUrl: String): String?
+    {
         val pattern = "(?<=youtu.be/|watch\\?v=|/videos/|embed\\/)[^#\\&\\?]*"
         val compiledPattern: Pattern = Pattern.compile(pattern)
         val matcher: Matcher = compiledPattern.matcher(youTubeUrl)

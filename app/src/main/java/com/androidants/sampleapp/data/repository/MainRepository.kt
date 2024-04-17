@@ -15,4 +15,9 @@ interface MainRepository {
     suspend fun getInternetConnectionStatus(context: Context) : Boolean
 
     suspend fun postLogs ( screenId : String , logReport: LogReport ) : Response<ArrayList<MyScreenVideos>>
+
+    suspend fun deleteAdditionalFiles ( context: Context , activeCampaigns : ArrayList<VideoData> ,
+                                        holdCampaigns : ArrayList<VideoData> , pausedCampaigns : ArrayList<VideoData>)
+
+    suspend fun checkFileExists ( context: Context , videoData: VideoData ) : Pair<Boolean , VideoData>
 }

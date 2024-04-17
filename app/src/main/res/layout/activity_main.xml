@@ -29,9 +29,6 @@
         android:id="@+id/youtube_player"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        app:autoPlay="true"
-        app:enableAutomaticInitialization="true"
-        app:handleNetworkEvents="true"
-        app:videoId="QuSiHxNCjyA" />
+        app:enableAutomaticInitialization="false"/>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

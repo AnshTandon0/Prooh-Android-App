@@ -15,6 +15,7 @@ import com.androidants.sampleapp.data.model.log.LogReport
 import com.androidants.sampleapp.data.model.video.GetVideoResponse
 import com.androidants.sampleapp.data.model.video.MyScreenVideos
 import retrofit2.Response
+import java.io.File
 import javax.inject.Inject
 
 class MainRepositoryImpl @Inject constructor(
@@ -64,6 +65,69 @@ class MainRepositoryImpl @Inject constructor(
 
     override suspend fun postLogs(screenId: String , logReport: LogReport): Response<ArrayList<MyScreenVideos>> {
         return api.postLogs(screenId , logReport)
+    }
+
+    override suspend fun deleteAdditionalFiles(
+        context: Context,
+        activeCampaigns: ArrayList<VideoData>,
+        holdCampaigns: ArrayList<VideoData>,
+        pausedCampaigns: ArrayList<VideoData>
+    ) {
+        val directoryPath = Constants.DOWNLOAD_FOLDER_PATH
+        val directory = File(directoryPath)
+        val sharedPreferencesClass = SharedPreferencesClass(context)
+
+        val files = directory.listFiles()?.filter { it.isFile }
+        files?.forEach { file ->
+            var exists = false
+            activeCampaigns.forEach { videoData ->
+                Log.d(Constants.TAG_NORMAL  , videoData.filename)
+                if ( !exists && file.name == videoData.filename )
+                    exists = true
+            }
+            holdCampaigns.forEach { videoData ->
+                Log.d(Constants.TAG_NORMAL  , videoData.filename)
+                if ( !exists && file.name == videoData.filename )
+                    exists = true
+            }
+            pausedCampaigns.forEach { videoData ->
+                Log.d(Constants.TAG_NORMAL  , videoData.filename)
+                if ( !exists && file.name == videoData.filename )
+                    exists = true
+            }
+            if (!exists || file.length() == 0L) {
+                Log.d(Constants.TAG_NORMAL  , "Deleting file")
+                Log.d(Constants.TAG_NORMAL  , file.name)
+                sharedPreferencesClass.deleteSuccessId(file.name)
+                sharedPreferencesClass.deleteDownloadingId(file.name)
+                sharedPreferencesClass.deleteFailureId(file.name)
+                file.delete()
+            }
+        }
+    }
+
+    override suspend fun checkFileExists(context: Context, videoData: VideoData): Pair<Boolean , VideoData> {
+        Log.d(Constants.TAG_NORMAL  , "In Check File exists")
+        if (videoData.type == Constants.TYPE_URL || videoData.type == Constants.TYPE_YOUTUBE)
+            return Pair(true , videoData)
+
+        val directoryPath = Constants.DOWNLOAD_FOLDER_PATH
+        val directory = File(directoryPath)
+        val sharedPreferencesClass = SharedPreferencesClass(context)
+
+        val files = directory.listFiles()?.filter { it.isFile }
+        Log.d(Constants.TAG_NORMAL  , files.toString())
+        files?.forEach { file ->
+            val fileSize = file.length()
+            Log.d(Constants.TAG_NORMAL  , fileSize.toString())
+            Log.d(Constants.TAG_NORMAL  , videoData.filesize.toString())
+            if (file.name == videoData.filename && fileSize == videoData.filesize ) {
+                sharedPreferencesClass.deleteDownloadingId(videoData.filename)
+                sharedPreferencesClass.addSuccessId(videoData.filename)
+                return Pair(true , videoData)
+            }
+        }
+        return Pair(false , videoData)
     }
 
 }
