@@ -6,7 +6,7 @@ import kotlinx.coroutines.CoroutineExceptionHandler
 object Constants {
 
     // base url
-    val BASE_URL = "https://api.justmonad.com/"
+    val BASE_URL = "https://beta.vinciis.in/"
     val DEFAULT_WEBVIEW_URL = ""
 
 

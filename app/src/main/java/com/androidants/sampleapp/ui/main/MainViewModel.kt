@@ -4,8 +4,8 @@ import android.content.Context
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import com.androidants.sampleapp.data.model.VideoData
+import com.androidants.sampleapp.data.model.file.GetFilesResponse
 import com.androidants.sampleapp.data.model.log.LogReport
-import com.androidants.sampleapp.data.model.video.GetVideoResponse
 import com.androidants.sampleapp.ui.usecases.*
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -21,11 +21,11 @@ class MainViewModel @Inject constructor(
     private val checkFileExistsUseCase: CheckFileExistsUseCase
 ) : ViewModel() {
 
-    private var _getVideoResponse = MutableLiveData<GetVideoResponse>()
+    private var _getVideoResponse = MutableLiveData<GetFilesResponse>()
     private var _downloadManagerId = MutableLiveData<VideoData>()
     private var _getInternetConnectionStatus = MutableLiveData<Boolean>()
     private var _checkFileExits = MutableLiveData<Pair<Boolean , VideoData>>()
-    val getVideoResponse : MutableLiveData<GetVideoResponse> by lazy {
+    val getVideoResponse : MutableLiveData<GetFilesResponse> by lazy {
         _getVideoResponse
     }
     val downloadManagerId :MutableLiveData<VideoData> by lazy {

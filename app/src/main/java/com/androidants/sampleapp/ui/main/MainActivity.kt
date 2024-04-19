@@ -16,9 +16,9 @@ import com.androidants.sampleapp.common.MyExceptionHandler
 import com.androidants.sampleapp.common.SharedPreferencesClass
 import com.androidants.sampleapp.common.Utils
 import com.androidants.sampleapp.data.model.VideoData
+import com.androidants.sampleapp.data.model.file.FileData
 import com.androidants.sampleapp.data.model.log.DeviceInfo
 import com.androidants.sampleapp.data.model.log.LogReport
-import com.androidants.sampleapp.data.model.video.MyScreenVideos
 import com.androidants.sampleapp.databinding.ActivityMainBinding
 import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.YouTubePlayer
 import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.listeners.AbstractYouTubePlayerListener
@@ -133,13 +133,13 @@ class MainActivity : AppCompatActivity() {
             }
             else {
                 sharedPreferencesClass.setScreenId(it.screen?.Id.toString())
-                it.myScreenVideos.let {
+                it.activeCampaigns.let {
                     createList(it , Constants.ACTIVE_CAMPAIGN_LIST)
                 }
                 it.holdCampaigns.let {
                     createList(it , Constants.HOLD_CAMPAIGN_LIST)
                 }
-                it.pausedCampaigns.let {
+                it.pauseCampaigns.let {
                     createList(it , Constants.PAUSED_CAMPAIGN_LIST)
                 }
             }
@@ -231,16 +231,15 @@ class MainActivity : AppCompatActivity() {
 
     private fun checkStatus()
     {
+        checkInternetConnectionStatus()
         Log.d(Constants.TAG_NORMAL  , "In check status function")
         if ( finalList.size == 0 ) {
             Log.d(Constants.TAG_NORMAL  , "Starting Default video")
             setupInitialVideo()
-            checkInternetConnectionStatus()
         }
         else {
             if ( point >= finalList.size ) {
                 point = 0
-                checkInternetConnectionStatus()
                 Log.d(Constants.TAG_NORMAL , "Resetting Point to 0")
                 if ( internetConnection )
                 {
@@ -274,7 +273,7 @@ class MainActivity : AppCompatActivity() {
         addLog()
         Log.d(Constants.TAG_NORMAL  , "In Set Data to Views")
         Log.d(Constants.TAG_NORMAL , finalList.toString())
-        when( finalList[point].type )
+        when( finalList[point].fileType )
         {
             Constants.TYPE_VIDEO ->{
                 binding.imageView.visibility = View.GONE
@@ -367,35 +366,28 @@ class MainActivity : AppCompatActivity() {
         point ++
     }
 
-    private fun createList ( it : ArrayList<MyScreenVideos> , listType : String )
+    private fun createList (it : ArrayList<FileData>, listType : String )
     {
         val list = arrayListOf<VideoData>()
 
         for ( data in it )
         {
-            val type = data.fileType?.split("/")?.toTypedArray()
-            val newData = VideoData( awsUrl = data.awsUrl.toString() , cid = data.cid.toString() , type = type?.get(0).toString() , url = data.video.toString() , filesize = data.fileSize?.toLong() ?: 0 )
+            val newData = VideoData( awsUrl = data.awsUrl.toString() , cid = data.cid.toString() ,
+                fileType = data.fileType.toString() , url = data.url.toString() , filesize = data.fileSize?.toLong() ?: 0 ,
+                filename = data.fileName.toString())
 
             if( !data.duration.toString().isEmpty() )
                 newData.duration = data.duration.toString()
 
-            when ( newData.type )
+            when ( newData.fileType )
             {
-                Constants.TYPE_VIDEO -> {
-                    newData.filename = newData.cid + Constants.DOT + type?.get(1).toString()
-                }
-                Constants.TYPE_IMAGE -> {
-                    newData.filename = newData.cid + Constants.DOT + type?.get(1).toString()
-                }
                 Constants.TYPE_URL -> {
-                    newData.address = data.video.toString()
-                    newData.filename = newData.cid
+                    newData.address = data.url.toString()
                     if( !sharedPreferencesClass.checkSuccessIdExists(newData.filename) )
                         sharedPreferencesClass.addSuccessId(newData.filename)
                 }
                 Constants.TYPE_YOUTUBE -> {
                     newData.address = getYouTubeId(newData.url).toString()
-                    newData.filename = newData.cid
                     if( !sharedPreferencesClass.checkSuccessIdExists(newData.filename) )
                         sharedPreferencesClass.addSuccessId(newData.filename)
                 }

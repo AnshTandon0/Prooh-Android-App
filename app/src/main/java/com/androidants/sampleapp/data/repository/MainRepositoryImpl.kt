@@ -12,8 +12,8 @@ import com.androidants.sampleapp.common.SharedPreferencesClass
 import com.androidants.sampleapp.data.ApiCalls
 import com.androidants.sampleapp.data.model.VideoData
 import com.androidants.sampleapp.data.model.log.LogReport
-import com.androidants.sampleapp.data.model.video.GetVideoResponse
-import com.androidants.sampleapp.data.model.video.MyScreenVideos
+import com.androidants.sampleapp.data.model.file.FileData
+import com.androidants.sampleapp.data.model.file.GetFilesResponse
 import retrofit2.Response
 import java.io.File
 import javax.inject.Inject
@@ -22,7 +22,7 @@ class MainRepositoryImpl @Inject constructor(
     private val api : ApiCalls
 ) : MainRepository {
 
-    override suspend fun getVideoLinks(screenCode:String): Response<GetVideoResponse> {
+    override suspend fun getVideoLinks(screenCode:String): Response<GetFilesResponse> {
         return api.getVideos(screenCode)
     }
 
@@ -37,7 +37,7 @@ class MainRepositoryImpl @Inject constructor(
         }
 
         val request = DownloadManager.Request(urlDownload)
-            .setMimeType(videoData.type)
+            .setMimeType(videoData.fileType)
             .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
             .setTitle(videoData.filename)
             .setDestinationInExternalPublicDir( Environment.DIRECTORY_DOWNLOADS , videoData.filename )
@@ -63,7 +63,7 @@ class MainRepositoryImpl @Inject constructor(
         return false
     }
 
-    override suspend fun postLogs(screenId: String , logReport: LogReport): Response<ArrayList<MyScreenVideos>> {
+    override suspend fun postLogs(screenId: String , logReport: LogReport): Response<ArrayList<FileData>> {
         return api.postLogs(screenId , logReport)
     }
 
@@ -108,7 +108,7 @@ class MainRepositoryImpl @Inject constructor(
 
     override suspend fun checkFileExists(context: Context, videoData: VideoData): Pair<Boolean , VideoData> {
         Log.d(Constants.TAG_NORMAL  , "In Check File exists")
-        if (videoData.type == Constants.TYPE_URL || videoData.type == Constants.TYPE_YOUTUBE)
+        if (videoData.fileType == Constants.TYPE_URL || videoData.fileType == Constants.TYPE_YOUTUBE)
             return Pair(true , videoData)
 
         val directoryPath = Constants.DOWNLOAD_FOLDER_PATH

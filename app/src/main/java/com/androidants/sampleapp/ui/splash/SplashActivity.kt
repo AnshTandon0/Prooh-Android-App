@@ -73,6 +73,7 @@ class SplashActivity : AppCompatActivity() {
         sharedPreferencesClass = SharedPreferencesClass(this@SplashActivity)
         sharedPreferencesClass.deleteAllDownloadingId()
         sharedPreferencesClass.deleteAllFailureId()
+        sharedPreferencesClass.deleteAllSuccessId()
         sharedPreferencesClass.saveRestartStatus(true)
     }
 
