@@ -28,12 +28,12 @@ class MainRepositoryImpl @Inject constructor(
 
     override suspend fun downloadVideo(context: Context , videoData: VideoData): VideoData {
         val downloadManager = context.getSystemService(DownloadManager::class.java)
-        var urlDownload = videoData.url.trim().toUri()
+        var urlDownload = videoData.awsUrl.trim().toUri()
         val sharedPreferencesClass = SharedPreferencesClass(context)
 
-        if ( sharedPreferencesClass.checkFailureIdExists(videoData.filename) && videoData.awsUrl != "" )
+        if ( sharedPreferencesClass.checkFailureIdExists(videoData.filename) && videoData.url != "" )
         {
-            urlDownload = videoData.awsUrl.trim().toUri()
+            urlDownload = videoData.url.trim().toUri()
         }
 
         val request = DownloadManager.Request(urlDownload)
