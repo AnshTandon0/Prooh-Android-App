@@ -150,7 +150,7 @@ class MainActivity : AppCompatActivity() {
                     data.downloadId = it.downloadId
                 }
             Log.d(Constants.TAG_NORMAL  , "Download Manager Id")
-            Log.d(Constants.TAG_NORMAL  , activeCampaigns.toString())
+            Log.d(Constants.TAG_NORMAL  , it.toString())
         }
 
         viewModel.getInternetConnectionStatus.observe(this){
@@ -203,7 +203,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun deleteAdditionalFiles() {
         lifecycleScope.launch (Dispatchers.IO + Constants.coroutineExceptionHandler) {
-            viewModel.deleteAdditionalFiles(this@MainActivity , activeCampaigns as ArrayList<VideoData>, holdCampaigns as ArrayList<VideoData> , holdCampaigns as ArrayList<VideoData>)
+            viewModel.deleteAdditionalFiles(this@MainActivity , activeCampaigns as ArrayList<VideoData>, holdCampaigns as ArrayList<VideoData> , pausedCampaigns as ArrayList<VideoData>)
         }
     }
 
