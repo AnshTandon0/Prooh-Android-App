@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import android.util.Log
 import com.androidants.sampleapp.data.model.VideoData
+import com.androidants.sampleapp.data.model.log.LogReport
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import java.lang.reflect.Type
@@ -41,15 +42,20 @@ class SharedPreferencesClass ( context: Context ) {
         return false
     }
 
-    fun addSuccessId( id : String ) {
-        val videoSet : MutableSet<String>? = sharedPreferences.getStringSet(Constants.SHARED_PREF_SUCCESS_ID_SET , mutableSetOf())
-        videoSet?.add(id)
-        editor.putStringSet(Constants.SHARED_PREF_SUCCESS_ID_SET , videoSet)
+    fun deleteAllDownloadingId () {
+        val videoSet : MutableSet<String>? = sharedPreferences.getStringSet(Constants.SHARED_PREF_DOWNLOADING_ID_SET , mutableSetOf())
+        videoSet?.clear()
+        editor.putStringSet(Constants.SHARED_PREF_DOWNLOADING_ID_SET , videoSet)
         editor.commit()
     }
 
-    fun addFailureId( id : String ) {
-        val videoSet : MutableSet<String>? = sharedPreferences.getStringSet(Constants.SHARED_PREF_FAILURE_ID_SET , mutableSetOf())
+    fun getAllDownloadingIdSize () : Int {
+        val videoSet : MutableSet<String>? = sharedPreferences.getStringSet(Constants.SHARED_PREF_DOWNLOADING_ID_SET , mutableSetOf())
+        return videoSet?.size ?: 0
+    }
+
+    fun addSuccessId( id : String ) {
+        val videoSet : MutableSet<String>? = sharedPreferences.getStringSet(Constants.SHARED_PREF_SUCCESS_ID_SET , mutableSetOf())
         videoSet?.add(id)
         editor.putStringSet(Constants.SHARED_PREF_SUCCESS_ID_SET , videoSet)
         editor.commit()
@@ -62,32 +68,6 @@ class SharedPreferencesClass ( context: Context ) {
         editor.commit()
     }
 
-    fun deleteAllDownloadingId () {
-        val videoSet : MutableSet<String>? = sharedPreferences.getStringSet(Constants.SHARED_PREF_DOWNLOADING_ID_SET , mutableSetOf())
-        videoSet?.clear()
-        editor.putStringSet(Constants.SHARED_PREF_SUCCESS_ID_SET , videoSet)
-        editor.commit()
-    }
-
-    fun deleteAllFailureId () {
-        val videoSet : MutableSet<String>? = sharedPreferences.getStringSet(Constants.SHARED_PREF_FAILURE_ID_SET , mutableSetOf())
-        videoSet?.clear()
-        editor.putStringSet(Constants.SHARED_PREF_SUCCESS_ID_SET , videoSet)
-        editor.commit()
-    }
-
-    fun getAllSuccessId () : MutableSet<String> {
-        val videoSet : MutableSet<String>? = sharedPreferences.getStringSet(Constants.SHARED_PREF_FAILURE_ID_SET , mutableSetOf())
-        return videoSet ?: mutableSetOf()
-    }
-
-    fun deleteFailureId ( id : String ) {
-        val videoSet : MutableSet<String>? = sharedPreferences.getStringSet(Constants.SHARED_PREF_FAILURE_ID_SET, mutableSetOf())
-        videoSet?.remove(id)
-        editor.putStringSet(Constants.SHARED_PREF_SUCCESS_ID_SET , videoSet)
-        editor.commit()
-    }
-
     fun checkSuccessIdExists ( id: String ) : Boolean {
         val videoSet : MutableSet<String>? = sharedPreferences.getStringSet(Constants.SHARED_PREF_SUCCESS_ID_SET , mutableSetOf())
         if ( videoSet?.contains(id) == true )
@@ -95,11 +75,32 @@ class SharedPreferencesClass ( context: Context ) {
         return false
     }
 
-    fun checkSuccessEmpty() : Boolean {
+    fun deleteAllSuccessId () {
         val videoSet : MutableSet<String>? = sharedPreferences.getStringSet(Constants.SHARED_PREF_SUCCESS_ID_SET , mutableSetOf())
-        if ( videoSet?.size == 0 )
-            return true
-        return false
+        videoSet?.clear()
+        editor.putStringSet(Constants.SHARED_PREF_SUCCESS_ID_SET , videoSet)
+        editor.commit()
+    }
+
+    fun addFailureId( id : String ) {
+        val videoSet : MutableSet<String>? = sharedPreferences.getStringSet(Constants.SHARED_PREF_FAILURE_ID_SET , mutableSetOf())
+        videoSet?.add(id)
+        editor.putStringSet(Constants.SHARED_PREF_FAILURE_ID_SET , videoSet)
+        editor.commit()
+    }
+
+    fun deleteAllFailureId () {
+        val videoSet : MutableSet<String>? = sharedPreferences.getStringSet(Constants.SHARED_PREF_FAILURE_ID_SET , mutableSetOf())
+        videoSet?.clear()
+        editor.putStringSet(Constants.SHARED_PREF_FAILURE_ID_SET , videoSet)
+        editor.commit()
+    }
+
+    fun deleteFailureId ( id : String ) {
+        val videoSet : MutableSet<String>? = sharedPreferences.getStringSet(Constants.SHARED_PREF_FAILURE_ID_SET, mutableSetOf())
+        videoSet?.remove(id)
+        editor.putStringSet(Constants.SHARED_PREF_FAILURE_ID_SET , videoSet)
+        editor.commit()
     }
 
     fun checkFailureIdExists ( id: String ) : Boolean {
@@ -142,5 +143,33 @@ class SharedPreferencesClass ( context: Context ) {
         val data = sharedPreferences.getString(Constants.SHARED_PREF_FILE_DATA , "")
         val list = gson.fromJson<Any>(data , type) as ArrayList<VideoData>
         return list
+    }
+
+    fun saveLogs (logReport: LogReport) {
+        val gson = Gson()
+        val data = gson.toJson(logReport)
+        editor.putString(Constants.SHARED_PREF_LOG_REPORT , data)
+        editor.commit()
+    }
+
+    fun checkLogs () : Boolean{
+        return sharedPreferences.contains(Constants.SHARED_PREF_LOG_REPORT)
+    }
+
+    fun getLogs () : LogReport {
+        val gson = Gson()
+        val type: Type = object : TypeToken<LogReport>() {}.type
+        val data = sharedPreferences.getString(Constants.SHARED_PREF_LOG_REPORT , "")
+        val logs = gson.fromJson<Any>(data , type) as LogReport
+        return logs
+    }
+
+    fun saveRestartStatus(restart : Boolean) {
+        editor.putBoolean(Constants.SHARED_PREF_RESTART_STATUS , restart)
+        editor.commit()
+    }
+
+    fun getRestartStatus() : Boolean {
+        return sharedPreferences.getBoolean(Constants.SHARED_PREF_RESTART_STATUS , false)
     }
 }

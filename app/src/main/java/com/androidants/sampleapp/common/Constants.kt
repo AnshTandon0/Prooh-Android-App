@@ -7,6 +7,7 @@ object Constants {
 
     // base url
     val BASE_URL = "https://api.justmonad.com/"
+    val DEFAULT_WEBVIEW_URL = ""
 
 
     // screen code generation
@@ -19,7 +20,8 @@ object Constants {
 
 
     // tag for log
-    val TAG = "MAIN ACTIVITY VINCIIS"
+    val TAG_NORMAL = "MAIN ACTIVITY VINCIIS"
+    val TAG_ERROR = "MAIN ACTIVITY ERROR"
 
 
     // file type
@@ -28,6 +30,11 @@ object Constants {
     val TYPE_URL = "url"
     val TYPE_YOUTUBE = "youtube"
     val DOT = "."
+
+    // list type
+    val ACTIVE_CAMPAIGN_LIST = "active_list"
+    val PAUSED_CAMPAIGN_LIST = "paused_list"
+    val HOLD_CAMPAIGN_LIST = "hold_list"
 
 
     // shared preferences
@@ -38,6 +45,8 @@ object Constants {
     val SHARED_PREF_FAILURE_ID_SET = "failure_download"
     val SHARED_PREF_DOWNLOADING_ID_SET = "downloading_download"
     val SHARED_PREF_FILE_DATA = "file_data"
+    val SHARED_PREF_LOG_REPORT = "log_report"
+    val SHARED_PREF_RESTART_STATUS = "restart_status"
 
 
     // coroutine exception

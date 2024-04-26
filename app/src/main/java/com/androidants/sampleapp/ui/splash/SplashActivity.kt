@@ -1,7 +1,9 @@
 package com.androidants.sampleapp.ui.splash
 
 import android.Manifest
+import android.app.Activity
 import android.content.Intent
+import android.content.Intent.FLAG_ACTIVITY_NEW_TASK
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.os.CountDownTimer
@@ -12,7 +14,9 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import com.androidants.sampleapp.common.Constants
+import com.androidants.sampleapp.common.MyExceptionHandler
 import com.androidants.sampleapp.common.SharedPreferencesClass
+import com.androidants.sampleapp.data.model.VideoData
 import com.androidants.sampleapp.databinding.ActivitySplashBinding
 import com.androidants.sampleapp.ui.main.MainActivity
 import dagger.hilt.android.AndroidEntryPoint
@@ -20,6 +24,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.io.File
 import kotlin.random.Random.Default.nextInt
+
 
 @AndroidEntryPoint
 class SplashActivity : AppCompatActivity() {
@@ -36,13 +41,40 @@ class SplashActivity : AppCompatActivity() {
         binding = ActivitySplashBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        Thread.setDefaultUncaughtExceptionHandler(MyExceptionHandler(this))
+
         initSharedPreferences()
         checkPermission()
+        checkInactivity()
+    }
+
+    private fun checkInactivity() {
+        object : CountDownTimer(120000, 1000){
+            override fun onTick(p0: Long){}
+            override fun onFinish() {
+                if (sharedPreferencesClass.getRestartStatus())
+                    restartApp()
+            }
+        }.start()
+    }
+
+    private fun restartApp () {
+        val intent = Intent(this, SplashActivity::class.java)
+        intent.addFlags(FLAG_ACTIVITY_NEW_TASK)
+        startActivity(intent)
+        if (this is Activity) {
+            (this as Activity).finish()
+        }
+
+        Runtime.getRuntime().exit(0)
     }
 
     private fun initSharedPreferences() {
         sharedPreferencesClass = SharedPreferencesClass(this@SplashActivity)
-        syncDownloads()
+        sharedPreferencesClass.deleteAllDownloadingId()
+        sharedPreferencesClass.deleteAllFailureId()
+        sharedPreferencesClass.deleteAllSuccessId()
+        sharedPreferencesClass.saveRestartStatus(true)
     }
 
     private fun setViews() {
@@ -57,12 +89,12 @@ class SplashActivity : AppCompatActivity() {
         viewModel = ViewModelProvider(this).get(SplashViewModel::class.java)
 
         viewModel.getInternetConnectionStatus.observe(this){
-            Log.d(Constants.TAG , it.toString())
+            Log.d(Constants.TAG_NORMAL , it.toString())
             if ( it == true )
                 getVideoData()
-            else if ( sharedPreferencesClass.checkSuccessEmpty() ){
+            else if ( checkDownloads() ){
                 checkInternetConnectionStatus()
-                Log.d(Constants.TAG , "in shared pref")
+                Log.d(Constants.TAG_NORMAL , "in shared pref")
             }
             else
                 startMainActivity()
@@ -74,6 +106,40 @@ class SplashActivity : AppCompatActivity() {
             else
                 startMainActivity()
         }
+    }
+
+    private fun checkInternetConnectionStatus() {
+        lifecycleScope.launch (Dispatchers.IO + Constants.coroutineExceptionHandler) {
+            viewModel.internetConnectionStatus(this@SplashActivity)
+        }
+    }
+
+    private fun getVideoData() {
+        lifecycleScope.launch(Dispatchers.IO + Constants.coroutineExceptionHandler)  {
+            viewModel.getVideos(sharedPreferencesClass.getScreenCode())
+        }
+    }
+
+    private fun checkDownloads() : Boolean {
+        val directoryPath = Constants.DOWNLOAD_FOLDER_PATH
+        val directory = File(directoryPath)
+
+        val data = sharedPreferencesClass.getFileData()
+        val files = directory.listFiles()?.filter { it.isFile }
+        var boolData = true
+        val arrayList = mutableListOf<VideoData>()
+
+        for ( videoData in data )
+        {
+            files?.forEach { file ->
+                if( file.name == videoData.filename && file.length() == videoData.filesize ) {
+                    boolData = false
+                    arrayList.add(videoData)
+                }
+            }
+        }
+        sharedPreferencesClass.saveFileData(arrayList)
+        return boolData
     }
 
     private fun checkScreenCode () : String {
@@ -91,56 +157,23 @@ class SplashActivity : AppCompatActivity() {
         return randomString
     }
 
-    private fun checkInternetConnectionStatus() {
-        lifecycleScope.launch (Dispatchers.IO + Constants.coroutineExceptionHandler) {
-            viewModel.internetConnectionStatus(this@SplashActivity)
-        }
-    }
-
-    private fun getVideoData() {
-        lifecycleScope.launch(Dispatchers.IO + Constants.coroutineExceptionHandler)  {
-            viewModel.getVideos(sharedPreferencesClass.getScreenCode())
-        }
-    }
-
     private fun startMainActivity() {
         object : CountDownTimer(2000, 1000){
             override fun onTick(p0: Long){}
             override fun onFinish() {
+                sharedPreferencesClass.saveRestartStatus(false)
                 startActivity(Intent(this@SplashActivity , MainActivity::class.java))
                 finish()
             }
         }.start()
     }
 
-    private fun syncDownloads() {
-        sharedPreferencesClass.deleteAllDownloadingId()
-        sharedPreferencesClass.deleteAllFailureId()
-        val set = mutableSetOf<String>()
-        set.addAll(sharedPreferencesClass.getAllSuccessId())
-
-        val directoryPath = Constants.DOWNLOAD_FOLDER_PATH
-        val directory = File(directoryPath)
-
-        val files = directory.listFiles()?.filter { it.isFile }
-        set.forEach { id ->
-            var exists = false
-            files?.forEach { file ->
-                if( file.name == id )
-                    exists = true
-            }
-            if ( exists == false ) {
-                sharedPreferencesClass.deleteSuccessId(id)
-            }
-        }
-    }
-
     private fun checkPermission() {
-        Log.d(Constants.TAG  , "Check Permission")
+        Log.d(Constants.TAG_NORMAL  , "Check Permission")
         if (ContextCompat.checkSelfPermission(this@SplashActivity, Manifest.permission.WRITE_EXTERNAL_STORAGE)
             != PackageManager.PERMISSION_GRANTED ) {
-            Log.d(Constants.TAG  , "Permission Not Given")
-            Log.d(Constants.TAG  , "Asking for Permission")
+            Log.d(Constants.TAG_NORMAL  , "Permission Not Given")
+            Log.d(Constants.TAG_NORMAL  , "Asking for Permission")
             ActivityCompat.requestPermissions(this@SplashActivity,
                 arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE) ,0)
         }
@@ -149,7 +182,7 @@ class SplashActivity : AppCompatActivity() {
             setViews()
             initViewModel()
             checkInternetConnectionStatus()
-            Log.d(Constants.TAG  , "Permission Given")
+            Log.d(Constants.TAG_NORMAL  , "Permission Given")
         }
     }
 
@@ -165,7 +198,7 @@ class SplashActivity : AppCompatActivity() {
                 setViews()
                 initViewModel()
                 checkInternetConnectionStatus()
-                Log.d(Constants.TAG  , "Permission Given")
+                Log.d(Constants.TAG_NORMAL  , "Permission Given")
             }
         }
     }
