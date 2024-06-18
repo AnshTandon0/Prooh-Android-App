@@ -382,7 +382,7 @@ class MainActivity : AppCompatActivity() {
         {
             val newData = VideoData( cid = data.cid.toString() ,
                 fileType = data.fileType.toString() , url = data.url.toString() , filesize = data.fileSize?.toLong() ?: 0 ,
-                filename = data.cid.toString())
+                filename = data.fileName.toString())
 
             if( !data.duration.toString().isEmpty() )
                 newData.duration = data.duration.toString()
