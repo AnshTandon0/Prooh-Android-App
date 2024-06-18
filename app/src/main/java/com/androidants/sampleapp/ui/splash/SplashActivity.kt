@@ -101,8 +101,14 @@ class SplashActivity : AppCompatActivity() {
         }
 
         viewModel.getVideoResponse.observe(this) {
-            if ( it == null )
-                getVideoData()
+            if ( it == null ){
+                object : CountDownTimer(5000, 1000){
+                    override fun onTick(p0: Long){}
+                    override fun onFinish() {
+                        getVideoData()
+                    }
+                }.start()
+            }
             else
                 startMainActivity()
         }
@@ -116,7 +122,8 @@ class SplashActivity : AppCompatActivity() {
 
     private fun getVideoData() {
         lifecycleScope.launch(Dispatchers.IO + Constants.coroutineExceptionHandler)  {
-            viewModel.getVideos(sharedPreferencesClass.getScreenCode())
+//            viewModel.getVideos(sharedPreferencesClass.getScreenCode())
+            viewModel.getVideos("wq21121")
         }
     }
 

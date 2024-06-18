@@ -116,11 +116,11 @@ class MainRepositoryImpl @Inject constructor(
         val sharedPreferencesClass = SharedPreferencesClass(context)
 
         val files = directory.listFiles()?.filter { it.isFile }
-        Log.d(Constants.TAG_NORMAL  , files.toString())
+//        Log.d(Constants.TAG_NORMAL  , files.toString())
         files?.forEach { file ->
             val fileSize = file.length()
-            Log.d(Constants.TAG_NORMAL  , fileSize.toString())
-            Log.d(Constants.TAG_NORMAL  , videoData.filesize.toString())
+//            Log.d(Constants.TAG_NORMAL  , fileSize.toString())
+//            Log.d(Constants.TAG_NORMAL  , videoData.filesize.toString())
             if (file.name == videoData.filename && fileSize == videoData.filesize ) {
                 sharedPreferencesClass.deleteDownloadingId(videoData.filename)
                 sharedPreferencesClass.addSuccessId(videoData.filename)

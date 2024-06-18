@@ -8,11 +8,12 @@ import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.PUT
 import retrofit2.http.Path
+import retrofit2.http.Query
 
 interface ApiCalls {
 
-    @GET("/api/screens/syncScreenCode/{code}")
-    suspend fun getVideos(@Path ("code") screenCode:String) : Response<GetFilesResponse>
+    @GET("/api/v1/screens/syncScreenCode")
+    suspend fun getVideos(@Query ("syncCode") screenCode:String) : Response<GetFilesResponse>
 
     @PUT("/api/screens/enterplaybacklogs/{screenId}")
     suspend fun postLogs(@Path ("screenId") screenId: String , @Body logReport: LogReport ) : Response<ArrayList<FileData>>
