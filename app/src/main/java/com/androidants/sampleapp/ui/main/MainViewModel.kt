@@ -1,11 +1,13 @@
 package com.androidants.sampleapp.ui.main
 
 import android.content.Context
+import android.util.Log
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import com.androidants.sampleapp.data.model.VideoData
 import com.androidants.sampleapp.data.model.file.GetFilesResponse
-import com.androidants.sampleapp.data.model.log.LogReport
+import com.androidants.sampleapp.data.model.log.CampaignLogs
+import com.androidants.sampleapp.data.model.log.LogReportInput
 import com.androidants.sampleapp.ui.usecases.*
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -54,9 +56,9 @@ class MainViewModel @Inject constructor(
         _getInternetConnectionStatus.postValue(getInternetConnectionStatusUseCase.invoke(context))
     }
 
-    suspend fun postLogs ( screenId : String , logReport: LogReport )
+    suspend fun postLogs (logReportInput: LogReportInput )
     {
-        postLogsUseCase.invoke(screenId , logReport)
+        Log.e("abcd" , postLogsUseCase.invoke(logReportInput).toString())
     }
 
     suspend fun deleteAdditionalFiles( context : Context, activeCampaigns : ArrayList<VideoData> ,

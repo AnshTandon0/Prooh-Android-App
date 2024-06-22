@@ -1,7 +1,6 @@
 package com.androidants.sampleapp.ui.main
 
 import android.annotation.SuppressLint
-import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.os.Bundle
 import android.os.CountDownTimer
@@ -19,8 +18,7 @@ import com.androidants.sampleapp.common.SharedPreferencesClass
 import com.androidants.sampleapp.common.Utils
 import com.androidants.sampleapp.data.model.VideoData
 import com.androidants.sampleapp.data.model.file.FileData
-import com.androidants.sampleapp.data.model.log.DeviceInfo
-import com.androidants.sampleapp.data.model.log.LogReport
+import com.androidants.sampleapp.data.model.log.*
 import com.androidants.sampleapp.databinding.ActivityMainBinding
 import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.YouTubePlayer
 import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.listeners.AbstractYouTubePlayerListener
@@ -45,9 +43,8 @@ class MainActivity : AppCompatActivity() {
     private var finalList  = mutableListOf<VideoData>()
     private var pausedCampaigns = mutableListOf<VideoData>()
     private var holdCampaigns = mutableListOf<VideoData>()
-    private lateinit var logReport: LogReport
+    private lateinit var logReportInput: LogReportInput
     private var internetConnection : Boolean = true
-    private var logMap = mutableMapOf<String , String>()
     private var addLogReportBool = false
 
 
@@ -72,26 +69,19 @@ class MainActivity : AppCompatActivity() {
     private fun initializeLogReport() {
 
         if ( sharedPreferencesClass.checkLogs() )
-            logReport = sharedPreferencesClass.getLogs()
+            logReportInput = sharedPreferencesClass.getLogs()
         else
         {
-            val deviceInfo = DeviceInfo()
-            deviceInfo.deviceIp = Utils.getIPAddress(true)
-            deviceInfo.deviceMac = Utils.getMACAddress("eth0")
-            deviceInfo.deviceId = Settings.Secure.getString(contentResolver, Settings.Secure.ANDROID_ID)
-            deviceInfo.deviceDisplay = android.os.Build.MODEL
-            logReport = LogReport(deviceInfo = deviceInfo)
-            sharedPreferencesClass.saveLogs(logReport)
+            val screenLogs = ScreenLogs()
+            screenLogs.screenIp = Utils.getIPAddress(true)
+            screenLogs.screenMac = Utils.getMACAddress("wlan0")
+            screenLogs.screenDeviceId = Settings.Secure.getString(contentResolver, Settings.Secure.ANDROID_ID)
+            screenLogs.screenId = sharedPreferencesClass.getScreenId()
+            screenLogs.screenDisplay = android.os.Build.MODEL
+            logReportInput = LogReportInput(screenLogs = screenLogs)
+            sharedPreferencesClass.saveLogs(logReportInput)
         }
-        createLogMap()
-        Log.d(Constants.TAG_NORMAL , logReport.toString())
-    }
-
-    private fun createLogMap() {
-        logMap.put("\"" +"deviceIp" + "\"" , "\"" + Utils.getIPAddress(true) + "\"" )
-        logMap.put("\"" + "deviceMaac" + "\"" , "\"" + Utils.getMACAddress("eth0") + "\"" )
-        logMap.put( "\"" + "deviceDisplay" +"\"" , "\"" + Settings.Secure.getString(contentResolver, Settings.Secure.ANDROID_ID) + "\"" )
-        logMap.put("\"" + "deviceId" + "\"" , "\"" + android.os.Build.MODEL + "\"" )
+        Log.d(Constants.TAG_NORMAL , logReportInput.toString())
     }
 
     private fun setupInitialVideo() {
@@ -149,7 +139,7 @@ class MainActivity : AppCompatActivity() {
         }
         viewModel.downloadManagerId.observe(this) {
             for ( data in activeCampaigns )
-                if ( data.cid == it.cid ) {
+                if ( data.screenId == it.screenId ) {
                     data.downloadId = it.downloadId
                 }
             Log.d(Constants.TAG_NORMAL  , "Download Manager Id")
@@ -187,8 +177,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun getData() {
         lifecycleScope.launch (Dispatchers.IO + Constants.coroutineExceptionHandler) {
-//            viewModel.getVideos(sharedPreferencesClass.getScreenCode())
-            viewModel.getVideos("wq21121")
+            viewModel.getVideos(sharedPreferencesClass.getScreenCode())
         }
     }
 
@@ -212,18 +201,21 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun postLogData() {
-        logReport.data.clear()
-        logReport.data.addAll(sharedPreferencesClass.getLogs().data)
+        logReportInput.screenLogs.mediaPlaybackDetails.clear()
+        logReportInput.campaignLogs.clear()
+        logReportInput.screenLogs.mediaPlaybackDetails.addAll(sharedPreferencesClass.getLogs().screenLogs.mediaPlaybackDetails)
+        logReportInput.campaignLogs.addAll(sharedPreferencesClass.getLogs().campaignLogs)
         Log.d(Constants.TAG_NORMAL  , "Log Report")
-        Log.d(Constants.TAG_NORMAL , logReport.toString())
+        Log.d(Constants.TAG_NORMAL , logReportInput.toString())
         lifecycleScope.launch (Dispatchers.IO + Constants.coroutineExceptionHandler) {
-            viewModel.postLogs(sharedPreferencesClass.getScreenId() , logReport)
+            viewModel.postLogs(logReportInput)
         }
 
         Log.d(Constants.TAG_NORMAL  , "Log Report")
-        Log.d(Constants.TAG_NORMAL , logReport.toString())
+        Log.d(Constants.TAG_NORMAL , logReportInput.toString())
         val logReport = sharedPreferencesClass.getLogs()
-        logReport.data.clear()
+        logReport.screenLogs.mediaPlaybackDetails.clear()
+        logReport.campaignLogs.clear()
         sharedPreferencesClass.saveLogs(logReport)
     }
 
@@ -250,7 +242,7 @@ class MainActivity : AppCompatActivity() {
                 if ( internetConnection )
                 {
                     Log.d(Constants.TAG_NORMAL , "Posting log Data")
-//                    postLogData()
+                    postLogData()
                 }
             }
             setDataToViews()
@@ -262,16 +254,17 @@ class MainActivity : AppCompatActivity() {
         if ( point >= finalList.size )
             return
 
-        val map = mutableMapOf<String , String>()
-        map.put(Calendar.getInstance().time.toString() , finalList[point].cid)
-        val status = if (internetConnection) "\"" + "online" + "\"" else "\"" + "offline" + "\""
-        logMap.put("\"" +"deviceStatus" + "\"" , status )
-        var temp = logMap.toString()
-        temp = temp.replace('=' , ':')
-        map.put("deviceInfo" , temp)
-
+        val screenMediaDetails = ScreenMediaDetails(time = Calendar.getInstance().time.toString() , mediaId = finalList[point].mediaId
+            , campaignId = finalList[point].campaignId , screenStatus = if (internetConnection)  "online" else  "offline" )
         val logReport = sharedPreferencesClass.getLogs()
-        logReport.data.add(map)
+        logReport.screenLogs.screenId = finalList[point].screenId
+        logReport.screenLogs.mediaPlaybackDetails.add(screenMediaDetails)
+
+        val campaignMediaDetails = CampaignMediaDetails(time = Calendar.getInstance().time.toString() , mediaId = finalList[point].mediaId
+            , screenId = finalList[point].screenId , screenStatus = if (internetConnection)  "online" else  "offline" )
+        val campaignLog = CampaignLogs(campaignId = finalList[point].campaignId , campaignMediaDetails)
+        logReport.campaignLogs.add(campaignLog)
+
         sharedPreferencesClass.saveLogs(logReport)
         Log.d(Constants.TAG_NORMAL  , "Adding Log Report")
         Log.d(Constants.TAG_NORMAL , logReport.toString())
@@ -380,9 +373,9 @@ class MainActivity : AppCompatActivity() {
 
         for ( data in it )
         {
-            val newData = VideoData( cid = data.cid.toString() ,
-                fileType = data.fileType.toString() , url = data.url.toString() , filesize = data.fileSize?.toLong() ?: 0 ,
-                filename = data.fileName.toString())
+            val newData = VideoData( screenId = data.screenId.toString() , campaignId = data.campaignId.toString() ,
+                mediaId = data.mediaId.toString() , fileType = data.fileType.toString() , url = data.url.toString() ,
+                filesize = data.fileSize?.toLong() ?: 0 , filename = data.fileName.toString())
 
             if( !data.duration.toString().isEmpty() )
                 newData.duration = data.duration.toString()

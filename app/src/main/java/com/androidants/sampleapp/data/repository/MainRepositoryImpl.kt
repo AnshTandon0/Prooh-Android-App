@@ -11,9 +11,11 @@ import com.androidants.sampleapp.common.Constants
 import com.androidants.sampleapp.common.SharedPreferencesClass
 import com.androidants.sampleapp.data.ApiCalls
 import com.androidants.sampleapp.data.model.VideoData
-import com.androidants.sampleapp.data.model.log.LogReport
+import com.androidants.sampleapp.data.model.log.CampaignLogs
 import com.androidants.sampleapp.data.model.file.FileData
 import com.androidants.sampleapp.data.model.file.GetFilesResponse
+import com.androidants.sampleapp.data.model.log.LogReportInput
+import com.androidants.sampleapp.data.model.log.LogReportOutput
 import retrofit2.Response
 import java.io.File
 import javax.inject.Inject
@@ -63,8 +65,8 @@ class MainRepositoryImpl @Inject constructor(
         return false
     }
 
-    override suspend fun postLogs(screenId: String , logReport: LogReport): Response<ArrayList<FileData>> {
-        return api.postLogs(screenId , logReport)
+    override suspend fun postLogs(logReportInput: LogReportInput): Response<LogReportOutput> {
+        return api.postLogs(logReportInput)
     }
 
     override suspend fun deleteAdditionalFiles(

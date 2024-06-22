@@ -4,7 +4,9 @@ import android.content.Context
 import com.androidants.sampleapp.data.model.VideoData
 import com.androidants.sampleapp.data.model.file.FileData
 import com.androidants.sampleapp.data.model.file.GetFilesResponse
-import com.androidants.sampleapp.data.model.log.LogReport
+import com.androidants.sampleapp.data.model.log.CampaignLogs
+import com.androidants.sampleapp.data.model.log.LogReportInput
+import com.androidants.sampleapp.data.model.log.LogReportOutput
 import retrofit2.Response
 
 interface MainRepository {
@@ -14,7 +16,7 @@ interface MainRepository {
 
     suspend fun getInternetConnectionStatus(context: Context) : Boolean
 
-    suspend fun postLogs ( screenId : String , logReport: LogReport ) : Response<ArrayList<FileData>>
+    suspend fun postLogs (logReportInput: LogReportInput ) : Response<LogReportOutput>
 
     suspend fun deleteAdditionalFiles ( context: Context , activeCampaigns : ArrayList<VideoData> ,
                                         holdCampaigns : ArrayList<VideoData> , pausedCampaigns : ArrayList<VideoData> )

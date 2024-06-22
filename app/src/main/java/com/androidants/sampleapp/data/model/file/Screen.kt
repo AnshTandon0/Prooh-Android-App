@@ -14,5 +14,5 @@ data class Screen (
 
 data class Campaign (
   @SerializedName("campaignId"        ) var Id         : String?           = null,
-  @SerializedName("campaignType"      ) var name       : String?           = null,
+  @SerializedName("campaignType"      ) var name       : ArrayList<String> = arrayListOf(),
 )

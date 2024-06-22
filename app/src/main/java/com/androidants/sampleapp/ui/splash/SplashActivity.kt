@@ -122,8 +122,7 @@ class SplashActivity : AppCompatActivity() {
 
     private fun getVideoData() {
         lifecycleScope.launch(Dispatchers.IO + Constants.coroutineExceptionHandler)  {
-//            viewModel.getVideos(sharedPreferencesClass.getScreenCode())
-            viewModel.getVideos("wq21121")
+            viewModel.getVideos(sharedPreferencesClass.getScreenCode())
         }
     }
 
