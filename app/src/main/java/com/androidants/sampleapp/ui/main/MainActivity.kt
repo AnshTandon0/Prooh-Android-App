@@ -125,7 +125,7 @@ class MainActivity : AppCompatActivity() {
                 deleteAllFiles()
             }
             else {
-                sharedPreferencesClass.setScreenId(it.screen?.Id.toString())
+                sharedPreferencesClass.setScreenId(it.screenId ?: "")
                 it.activeCampaigns.let {
                     createList(it , Constants.ACTIVE_CAMPAIGN_LIST)
                 }

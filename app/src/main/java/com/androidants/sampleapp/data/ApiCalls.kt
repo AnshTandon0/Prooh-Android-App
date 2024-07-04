@@ -15,7 +15,7 @@ import retrofit2.http.Query
 
 interface ApiCalls {
 
-    @GET("/api/v1/screens/syncScreenCode")
+    @GET("/api/v1/screens/newSyncScreenCode")
     suspend fun getVideos(@Query ("syncCode") screenCode:String) : Response<GetFilesResponse>
 
     @POST("api/v1/analytics/addLogReport")
