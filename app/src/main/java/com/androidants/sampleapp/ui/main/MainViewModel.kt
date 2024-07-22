@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Log
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import com.androidants.sampleapp.common.Constants
 import com.androidants.sampleapp.data.model.VideoData
 import com.androidants.sampleapp.data.model.file.GetFilesResponse
 import com.androidants.sampleapp.data.model.log.CampaignLogs
@@ -44,8 +45,10 @@ class MainViewModel @Inject constructor(
         val response = getFilesDataUseCase.invoke(screenCode)
         if ( response.code() == 200 )
             _getVideoResponse.postValue(response.body())
+        else if ( response.code() == 504 || response.code() == 500 )
+            _getVideoResponse.postValue(GetFilesResponse(screenId = Constants.ERROR))
         else
-            _getVideoResponse.postValue(null)
+            _getVideoResponse.postValue(GetFilesResponse(screenId = Constants.NOT_SYNCED))
     }
 
     suspend fun downloadVideo(context : Context, videoData: VideoData ) {

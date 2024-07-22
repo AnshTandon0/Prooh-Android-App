@@ -5,9 +5,12 @@ import android.app.Activity
 import android.content.Intent
 import android.content.Intent.FLAG_ACTIVITY_NEW_TASK
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Bundle
 import android.os.CountDownTimer
+import android.provider.Settings
 import android.util.Log
+import android.view.WindowManager
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -185,6 +188,13 @@ class SplashActivity : AppCompatActivity() {
         }
         else
         {
+            if (android.os.Build.VERSION.SDK_INT >= 28 && !Settings.canDrawOverlays(this)) {
+                val intent = Intent(
+                    Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                    Uri.parse("package:$packageName")
+                )
+                startActivityForResult(intent, 101)
+            }
             setViews()
             initViewModel()
             checkInternetConnectionStatus()
@@ -201,6 +211,13 @@ class SplashActivity : AppCompatActivity() {
         if (requestCode == 0) {
             if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED)
             {
+                if (android.os.Build.VERSION.SDK_INT >= 28 && !Settings.canDrawOverlays(this)) {
+                    val intent = Intent(
+                        Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                        Uri.parse("package:$packageName")
+                    )
+                    startActivityForResult(intent, 101)
+                }
                 setViews()
                 initViewModel()
                 checkInternetConnectionStatus()

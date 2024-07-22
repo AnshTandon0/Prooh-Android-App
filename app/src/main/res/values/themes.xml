@@ -1,4 +1,14 @@
 <resources>
 
-    <style name="Theme.SampleApp" parent="@style/Theme.Leanback" />
+    <style name="Theme.SampleApp" parent="@style/Theme.Leanback">
+        <item name="android:windowActionBar">false</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowFullscreen">true</item>
+    </style>
+
+    <style name="Theme.NoActionBar" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="android:windowActionBar">false</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowFullscreen">true</item>
+    </style>
 </resources>

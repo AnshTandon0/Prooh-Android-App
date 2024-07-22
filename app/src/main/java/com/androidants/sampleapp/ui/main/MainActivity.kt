@@ -117,12 +117,16 @@ class MainActivity : AppCompatActivity() {
         viewModel = ViewModelProvider(this).get(MainViewModel::class.java)
 
         viewModel.getVideoResponse.observe (this) { it ->
-            if ( it == null )
+            if ( it.screenId == Constants.NOT_SYNCED )
             {
                 finalList.clear()
                 activeCampaigns.clear()
                 sharedPreferencesClass.saveFileData(finalList)
+                sharedPreferencesClass.deleteAllSuccessId()
                 deleteAllFiles()
+            }
+            else if (it.screenId == Constants.ERROR){
+                createOfflineList()
             }
             else {
                 sharedPreferencesClass.setScreenId(it.screenId ?: "")
@@ -428,7 +432,6 @@ class MainActivity : AppCompatActivity() {
         var i = 0
         val list = mutableListOf<VideoData>()
 
-//        Log.d(Constants.TAG_NORMAL  , checkFileExists(activeCampaigns[i]).toString())
         while ( i < activeCampaigns.size )
         {
             if ( sharedPreferencesClass.checkSuccessIdExists(activeCampaigns[i].filename) ) {
