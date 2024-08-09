@@ -7,6 +7,7 @@ import android.os.CountDownTimer
 import android.provider.Settings
 import android.util.Log
 import android.view.View
+import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.ViewModelProvider
@@ -17,8 +18,7 @@ import com.androidants.sampleapp.common.SharedPreferencesClass
 import com.androidants.sampleapp.common.Utils
 import com.androidants.sampleapp.data.model.VideoData
 import com.androidants.sampleapp.data.model.file.FileData
-import com.androidants.sampleapp.data.model.log.DeviceInfo
-import com.androidants.sampleapp.data.model.log.LogReport
+import com.androidants.sampleapp.data.model.log.*
 import com.androidants.sampleapp.databinding.ActivityMainBinding
 import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.YouTubePlayer
 import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.listeners.AbstractYouTubePlayerListener
@@ -30,7 +30,6 @@ import java.io.File
 import java.util.*
 import java.util.regex.Matcher
 import java.util.regex.Pattern
-import kotlin.collections.ArrayList
 
 
 @AndroidEntryPoint
@@ -44,9 +43,9 @@ class MainActivity : AppCompatActivity() {
     private var finalList  = mutableListOf<VideoData>()
     private var pausedCampaigns = mutableListOf<VideoData>()
     private var holdCampaigns = mutableListOf<VideoData>()
-    private lateinit var logReport: LogReport
+    private lateinit var logReportInput: LogReportInput
     private var internetConnection : Boolean = true
-    private var logMap = mutableMapOf<String , String>()
+    private var addLogReportBool = false
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -70,26 +69,19 @@ class MainActivity : AppCompatActivity() {
     private fun initializeLogReport() {
 
         if ( sharedPreferencesClass.checkLogs() )
-            logReport = sharedPreferencesClass.getLogs()
+            logReportInput = sharedPreferencesClass.getLogs()
         else
         {
-            val deviceInfo = DeviceInfo()
-            deviceInfo.deviceIp = Utils.getIPAddress(true)
-            deviceInfo.deviceMac = Utils.getMACAddress("eth0")
-            deviceInfo.deviceId = Settings.Secure.getString(contentResolver, Settings.Secure.ANDROID_ID)
-            deviceInfo.deviceDisplay = android.os.Build.MODEL
-            logReport = LogReport(deviceInfo = deviceInfo)
-            sharedPreferencesClass.saveLogs(logReport)
+            val screenLogs = ScreenLogs()
+            screenLogs.screenIp = Utils.getIPAddress(true)
+            screenLogs.screenMac = Utils.getMACAddress("wlan0")
+            screenLogs.screenDeviceId = Settings.Secure.getString(contentResolver, Settings.Secure.ANDROID_ID)
+            screenLogs.screenId = sharedPreferencesClass.getScreenId()
+            screenLogs.screenDisplay = android.os.Build.MODEL
+            logReportInput = LogReportInput(screenLogs = screenLogs)
+            sharedPreferencesClass.saveLogs(logReportInput)
         }
-        createLogMap()
-        Log.d(Constants.TAG_NORMAL , logReport.toString())
-    }
-
-    private fun createLogMap() {
-        logMap.put("\"" +"deviceIp" + "\"" , "\"" + Utils.getIPAddress(true) + "\"" )
-        logMap.put("\"" + "deviceMaac" + "\"" , "\"" + Utils.getMACAddress("eth0") + "\"" )
-        logMap.put( "\"" + "deviceDisplay" +"\"" , "\"" + Settings.Secure.getString(contentResolver, Settings.Secure.ANDROID_ID) + "\"" )
-        logMap.put("\"" + "deviceId" + "\"" , "\"" + android.os.Build.MODEL + "\"" )
+        Log.d(Constants.TAG_NORMAL , logReportInput.toString())
     }
 
     private fun setupInitialVideo() {
@@ -100,12 +92,13 @@ class MainActivity : AppCompatActivity() {
         binding.videoView.setVideoPath(Constants.INITIAL_VIDEO_PATH)
         binding.videoView.start()
         binding.videoView.setOnErrorListener { mediaPlayer, i, i2 ->
-            point ++
             checkStatus()
             return@setOnErrorListener true
         }
 
         binding.videoView.setOnCompletionListener {
+            if( addLogReportBool )
+                addLog()
             checkStatus()
         }
     }
@@ -124,15 +117,19 @@ class MainActivity : AppCompatActivity() {
         viewModel = ViewModelProvider(this).get(MainViewModel::class.java)
 
         viewModel.getVideoResponse.observe (this) { it ->
-            if ( it == null )
+            if ( it.screenId == Constants.NOT_SYNCED )
             {
                 finalList.clear()
                 activeCampaigns.clear()
                 sharedPreferencesClass.saveFileData(finalList)
+                sharedPreferencesClass.deleteAllSuccessId()
                 deleteAllFiles()
             }
+            else if (it.screenId == Constants.ERROR){
+                createOfflineList()
+            }
             else {
-                sharedPreferencesClass.setScreenId(it.screen?.Id.toString())
+                it.screenId?.let { it1 -> sharedPreferencesClass.setScreenId(it1) }
                 it.activeCampaigns.let {
                     createList(it , Constants.ACTIVE_CAMPAIGN_LIST)
                 }
@@ -146,11 +143,11 @@ class MainActivity : AppCompatActivity() {
         }
         viewModel.downloadManagerId.observe(this) {
             for ( data in activeCampaigns )
-                if ( data.cid == it.cid ) {
+                if ( data.screenId == it.screenId ) {
                     data.downloadId = it.downloadId
                 }
             Log.d(Constants.TAG_NORMAL  , "Download Manager Id")
-            Log.d(Constants.TAG_NORMAL  , activeCampaigns.toString())
+            Log.d(Constants.TAG_NORMAL  , it.toString())
         }
 
         viewModel.getInternetConnectionStatus.observe(this){
@@ -203,23 +200,27 @@ class MainActivity : AppCompatActivity() {
 
     private fun deleteAdditionalFiles() {
         lifecycleScope.launch (Dispatchers.IO + Constants.coroutineExceptionHandler) {
-            viewModel.deleteAdditionalFiles(this@MainActivity , activeCampaigns as ArrayList<VideoData>, holdCampaigns as ArrayList<VideoData> , holdCampaigns as ArrayList<VideoData>)
+            viewModel.deleteAdditionalFiles(this@MainActivity , activeCampaigns as ArrayList<VideoData>, holdCampaigns as ArrayList<VideoData> , pausedCampaigns as ArrayList<VideoData>)
         }
     }
 
     private fun postLogData() {
-        logReport.data.clear()
-        logReport.data.addAll(sharedPreferencesClass.getLogs().data)
+        logReportInput.screenLogs.mediaPlaybackDetails.clear()
+        logReportInput.campaignLogs.clear()
+        logReportInput.screenLogs.mediaPlaybackDetails.addAll(sharedPreferencesClass.getLogs().screenLogs.mediaPlaybackDetails)
+        logReportInput.campaignLogs.addAll(sharedPreferencesClass.getLogs().campaignLogs)
+        logReportInput.screenLogs.screenId = sharedPreferencesClass.getScreenId()
         Log.d(Constants.TAG_NORMAL  , "Log Report")
-        Log.d(Constants.TAG_NORMAL , logReport.toString())
+        Log.d(Constants.TAG_NORMAL , logReportInput.toString())
         lifecycleScope.launch (Dispatchers.IO + Constants.coroutineExceptionHandler) {
-            viewModel.postLogs(sharedPreferencesClass.getScreenId() , logReport)
+            viewModel.postLogs(logReportInput)
         }
 
         Log.d(Constants.TAG_NORMAL  , "Log Report")
-        Log.d(Constants.TAG_NORMAL , logReport.toString())
+        Log.d(Constants.TAG_NORMAL , logReportInput.toString())
         val logReport = sharedPreferencesClass.getLogs()
-        logReport.data.clear()
+        logReport.screenLogs.mediaPlaybackDetails.clear()
+        logReport.campaignLogs.clear()
         sharedPreferencesClass.saveLogs(logReport)
     }
 
@@ -238,10 +239,12 @@ class MainActivity : AppCompatActivity() {
             setupInitialVideo()
         }
         else {
+            point ++
+            addLogReportBool = true
             if ( point >= finalList.size ) {
                 point = 0
                 Log.d(Constants.TAG_NORMAL , "Resetting Point to 0")
-                if ( internetConnection )
+                if (internetConnection && sharedPreferencesClass.checkScreenIdExists())
                 {
                     Log.d(Constants.TAG_NORMAL , "Posting log Data")
                     postLogData()
@@ -253,24 +256,28 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun addLog () {
-        val map = mutableMapOf<String , String>()
-        map.put(Calendar.getInstance().time.toString() , finalList[point].cid)
-        val status = if (internetConnection) "\"" + "online" + "\"" else "\"" + "offline" + "\""
-        logMap.put("\"" +"deviceStatus" + "\"" , status )
-        var temp = logMap.toString()
-        temp = temp.replace('=' , ':')
-        map.put("deviceInfo" , temp)
+        if ( point >= finalList.size )
+            return
 
+        val screenMediaDetails = ScreenMediaDetails(time = Calendar.getInstance().time.toString() , mediaId = finalList[point].mediaId
+            , campaignId = finalList[point].campaignId , screenStatus = if (internetConnection)  "online" else  "offline" )
         val logReport = sharedPreferencesClass.getLogs()
-        logReport.data.add(map)
+        logReport.screenLogs.screenId = sharedPreferencesClass.getScreenId()
+        logReport.screenLogs.mediaPlaybackDetails.add(screenMediaDetails)
+
+        val campaignMediaDetails = CampaignMediaDetails(time = Calendar.getInstance().time.toString() , mediaId = finalList[point].mediaId
+            , screenId = sharedPreferencesClass.getScreenId() , screenStatus = if (internetConnection)  "online" else  "offline" )
+        val campaignLog = CampaignLogs(campaignId = finalList[point].campaignId , campaignMediaDetails)
+        logReport.campaignLogs.add(campaignLog)
+
         sharedPreferencesClass.saveLogs(logReport)
         Log.d(Constants.TAG_NORMAL  , "Adding Log Report")
         Log.d(Constants.TAG_NORMAL , logReport.toString())
     }
 
+    @SuppressLint("SetJavaScriptEnabled")
     private fun setDataToViews()
     {
-        addLog()
         Log.d(Constants.TAG_NORMAL  , "In Set Data to Views")
         Log.d(Constants.TAG_NORMAL , finalList.toString())
         when( finalList[point].fileType )
@@ -295,6 +302,7 @@ class MainActivity : AppCompatActivity() {
                 object : CountDownTimer(finalList[point].duration.toLong() * 1000, 1000){
                     override fun onTick(p0: Long){}
                     override fun onFinish() {
+                        addLog()
                         checkStatus()
                     }
                 }.start()
@@ -303,7 +311,6 @@ class MainActivity : AppCompatActivity() {
             Constants.TYPE_URL -> {
                 if ( !internetConnection )
                 {
-                    point ++
                     checkStatus()
                     return
                 }
@@ -313,11 +320,11 @@ class MainActivity : AppCompatActivity() {
                 binding.videoView.visibility = View.GONE
                 binding.webView.loadUrl(finalList[point].url)
                 binding.webView.getSettings().javaScriptEnabled = true
-                binding.webView.webViewClient = WebViewClient()
                 object : CountDownTimer(finalList[point].duration.toLong() * 1000, 1000){
                     override fun onTick(p0: Long){}
                     override fun onFinish() {
                         binding.webView.loadUrl(Constants.DEFAULT_WEBVIEW_URL)
+                        addLog()
                         checkStatus()
                     }
                 }.start()
@@ -327,7 +334,6 @@ class MainActivity : AppCompatActivity() {
             Constants.TYPE_YOUTUBE -> {
                 if ( !internetConnection )
                 {
-                    point ++
                     checkStatus()
                     return
                 }
@@ -345,10 +351,6 @@ class MainActivity : AppCompatActivity() {
                         youTubePlayer.loadVideo(finalList[point-1].address, 0F)
                         youTubePlayer.play()
                     }
-
-                    override fun onVideoDuration(youTubePlayer: YouTubePlayer, duration: Float) {
-                        super.onVideoDuration(youTubePlayer, duration)
-                    }
                 }
 
                 binding.youtubePlayer.initialize(listener)
@@ -363,7 +365,6 @@ class MainActivity : AppCompatActivity() {
                 Log.d(Constants.TAG_NORMAL  , "You Tube Preview Start")
             }
         }
-        point ++
     }
 
     private fun createList (it : ArrayList<FileData>, listType : String )
@@ -372,9 +373,9 @@ class MainActivity : AppCompatActivity() {
 
         for ( data in it )
         {
-            val newData = VideoData( awsUrl = data.awsUrl.toString() , cid = data.cid.toString() ,
-                fileType = data.fileType.toString() , url = data.url.toString() , filesize = data.fileSize?.toLong() ?: 0 ,
-                filename = data.fileName.toString())
+            val newData = VideoData( screenId = data.screenId.toString() , campaignId = data.campaignId.toString() ,
+                mediaId = data.mediaId.toString() , fileType = data.fileType.toString() , url = data.url.toString() ,
+                filesize = data.fileSize?.toLong() ?: 0 , filename = data.fileName.toString())
 
             if( !data.duration.toString().isEmpty() )
                 newData.duration = data.duration.toString()
@@ -383,13 +384,9 @@ class MainActivity : AppCompatActivity() {
             {
                 Constants.TYPE_URL -> {
                     newData.address = data.url.toString()
-                    if( !sharedPreferencesClass.checkSuccessIdExists(newData.filename) )
-                        sharedPreferencesClass.addSuccessId(newData.filename)
                 }
                 Constants.TYPE_YOUTUBE -> {
                     newData.address = getYouTubeId(newData.url).toString()
-                    if( !sharedPreferencesClass.checkSuccessIdExists(newData.filename) )
-                        sharedPreferencesClass.addSuccessId(newData.filename)
                 }
             }
 
@@ -431,7 +428,6 @@ class MainActivity : AppCompatActivity() {
         var i = 0
         val list = mutableListOf<VideoData>()
 
-        Log.d(Constants.TAG_NORMAL  , checkFileExists(activeCampaigns[i]).toString())
         while ( i < activeCampaigns.size )
         {
             if ( sharedPreferencesClass.checkSuccessIdExists(activeCampaigns[i].filename) ) {
@@ -463,7 +459,7 @@ class MainActivity : AppCompatActivity() {
         var i = 0
         val list = mutableListOf<VideoData>()
 
-        Log.d(Constants.TAG_NORMAL  , checkFileExists(holdCampaigns[i]).toString())
+//        Log.d(Constants.TAG_NORMAL  , checkFileExists(holdCampaigns[i]).toString())
         while ( i < holdCampaigns.size )
         {
             if ( sharedPreferencesClass.checkSuccessIdExists(holdCampaigns[i].filename) )
@@ -490,7 +486,6 @@ class MainActivity : AppCompatActivity() {
         var i = 0
         val list = mutableListOf<VideoData>()
 
-        Log.d(Constants.TAG_NORMAL  , checkFileExists(pausedCampaigns[i]).toString())
         while ( i < pausedCampaigns.size )
         {
             if ( sharedPreferencesClass.checkSuccessIdExists(pausedCampaigns[i].filename) )

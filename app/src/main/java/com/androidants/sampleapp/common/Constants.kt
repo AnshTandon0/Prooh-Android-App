@@ -48,6 +48,9 @@ object Constants {
     val SHARED_PREF_LOG_REPORT = "log_report"
     val SHARED_PREF_RESTART_STATUS = "restart_status"
 
+    val ERROR = "error"
+    val NOT_SYNCED = "not_synced"
+
 
     // coroutine exception
     val coroutineExceptionHandler = CoroutineExceptionHandler{_, throwable ->

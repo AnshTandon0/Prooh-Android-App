@@ -2,7 +2,9 @@ package com.androidants.sampleapp.data.model
 
 data class VideoData(
 
-    var cid : String = "",
+    var screenId : String = "",
+    var campaignId : String = "",
+    var mediaId : String = "",
     var downloadId : Long = 0,
     var fileType : String = "",
     var duration: String = "5",

@@ -2,9 +2,8 @@ package com.androidants.sampleapp.common
 
 import android.content.Context
 import android.content.SharedPreferences
-import android.util.Log
 import com.androidants.sampleapp.data.model.VideoData
-import com.androidants.sampleapp.data.model.log.LogReport
+import com.androidants.sampleapp.data.model.log.LogReportInput
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import java.lang.reflect.Type
@@ -125,6 +124,10 @@ class SharedPreferencesClass ( context: Context ) {
         return screenId.toString()
     }
 
+    fun checkScreenIdExists () : Boolean {
+        return sharedPreferences.contains(Constants.SHARED_PREF_SCREEN_ID)
+    }
+
     fun setScreenId (id : String) {
         editor.putString(Constants.SHARED_PREF_SCREEN_ID , id)
         editor.commit()
@@ -145,9 +148,9 @@ class SharedPreferencesClass ( context: Context ) {
         return list
     }
 
-    fun saveLogs (logReport: LogReport) {
+    fun saveLogs (logReportInput: LogReportInput) {
         val gson = Gson()
-        val data = gson.toJson(logReport)
+        val data = gson.toJson(logReportInput)
         editor.putString(Constants.SHARED_PREF_LOG_REPORT , data)
         editor.commit()
     }
@@ -156,11 +159,11 @@ class SharedPreferencesClass ( context: Context ) {
         return sharedPreferences.contains(Constants.SHARED_PREF_LOG_REPORT)
     }
 
-    fun getLogs () : LogReport {
+    fun getLogs () : LogReportInput {
         val gson = Gson()
-        val type: Type = object : TypeToken<LogReport>() {}.type
+        val type: Type = object : TypeToken<LogReportInput>() {}.type
         val data = sharedPreferences.getString(Constants.SHARED_PREF_LOG_REPORT , "")
-        val logs = gson.fromJson<Any>(data , type) as LogReport
+        val logs = gson.fromJson<Any>(data , type) as LogReportInput
         return logs
     }
 

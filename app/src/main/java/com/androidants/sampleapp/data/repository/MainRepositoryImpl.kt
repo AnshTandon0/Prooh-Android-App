@@ -11,9 +11,11 @@ import com.androidants.sampleapp.common.Constants
 import com.androidants.sampleapp.common.SharedPreferencesClass
 import com.androidants.sampleapp.data.ApiCalls
 import com.androidants.sampleapp.data.model.VideoData
-import com.androidants.sampleapp.data.model.log.LogReport
+import com.androidants.sampleapp.data.model.log.CampaignLogs
 import com.androidants.sampleapp.data.model.file.FileData
 import com.androidants.sampleapp.data.model.file.GetFilesResponse
+import com.androidants.sampleapp.data.model.log.LogReportInput
+import com.androidants.sampleapp.data.model.log.LogReportOutput
 import retrofit2.Response
 import java.io.File
 import javax.inject.Inject
@@ -28,12 +30,12 @@ class MainRepositoryImpl @Inject constructor(
 
     override suspend fun downloadVideo(context: Context , videoData: VideoData): VideoData {
         val downloadManager = context.getSystemService(DownloadManager::class.java)
-        var urlDownload = videoData.awsUrl.trim().toUri()
+        var urlDownload = videoData.url.trim().toUri()
         val sharedPreferencesClass = SharedPreferencesClass(context)
 
         if ( sharedPreferencesClass.checkFailureIdExists(videoData.filename) && videoData.url != "" )
         {
-            urlDownload = videoData.url.trim().toUri()
+            urlDownload = videoData.awsUrl.trim().toUri()
         }
 
         val request = DownloadManager.Request(urlDownload)
@@ -63,8 +65,8 @@ class MainRepositoryImpl @Inject constructor(
         return false
     }
 
-    override suspend fun postLogs(screenId: String , logReport: LogReport): Response<ArrayList<FileData>> {
-        return api.postLogs(screenId , logReport)
+    override suspend fun postLogs(logReportInput: LogReportInput): Response<LogReportOutput> {
+        return api.postLogs(logReportInput)
     }
 
     override suspend fun deleteAdditionalFiles(
@@ -116,11 +118,11 @@ class MainRepositoryImpl @Inject constructor(
         val sharedPreferencesClass = SharedPreferencesClass(context)
 
         val files = directory.listFiles()?.filter { it.isFile }
-        Log.d(Constants.TAG_NORMAL  , files.toString())
+//        Log.d(Constants.TAG_NORMAL  , files.toString())
         files?.forEach { file ->
             val fileSize = file.length()
-            Log.d(Constants.TAG_NORMAL  , fileSize.toString())
-            Log.d(Constants.TAG_NORMAL  , videoData.filesize.toString())
+//            Log.d(Constants.TAG_NORMAL  , fileSize.toString())
+//            Log.d(Constants.TAG_NORMAL  , videoData.filesize.toString())
             if (file.name == videoData.filename && fileSize == videoData.filesize ) {
                 sharedPreferencesClass.deleteDownloadingId(videoData.filename)
                 sharedPreferencesClass.addSuccessId(videoData.filename)
