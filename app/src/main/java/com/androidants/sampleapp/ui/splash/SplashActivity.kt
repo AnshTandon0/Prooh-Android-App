@@ -78,6 +78,7 @@ class SplashActivity : AppCompatActivity() {
         sharedPreferencesClass.deleteAllFailureId()
         sharedPreferencesClass.deleteAllSuccessId()
         sharedPreferencesClass.saveRestartStatus(true)
+        sharedPreferencesClass.setScreenCode("cU6azq")
     }
 
     private fun setViews() {
@@ -193,7 +194,7 @@ class SplashActivity : AppCompatActivity() {
                     Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
                     Uri.parse("package:$packageName")
                 )
-                startActivityForResult(intent, 101)
+                startActivity(intent)
             }
             setViews()
             initViewModel()
@@ -216,7 +217,7 @@ class SplashActivity : AppCompatActivity() {
                         Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
                         Uri.parse("package:$packageName")
                     )
-                    startActivityForResult(intent, 101)
+                    startActivity(intent)
                 }
                 setViews()
                 initViewModel()

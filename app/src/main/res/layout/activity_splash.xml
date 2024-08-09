@@ -39,10 +39,10 @@
             android:id="@+id/code"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/sample_code"
             android:gravity="center"
-            android:textSize="48sp"
-            android:textColor="@color/lb_tv_white"/>
+            android:text="@string/sample_code"
+            android:textColor="@color/lb_tv_white"
+            android:textSize="48sp" />
 
         <TextView
             android:id="@+id/status"

@@ -124,6 +124,10 @@ class SharedPreferencesClass ( context: Context ) {
         return screenId.toString()
     }
 
+    fun checkScreenIdExists () : Boolean {
+        return sharedPreferences.contains(Constants.SHARED_PREF_SCREEN_ID)
+    }
+
     fun setScreenId (id : String) {
         editor.putString(Constants.SHARED_PREF_SCREEN_ID , id)
         editor.commit()

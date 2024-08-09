@@ -129,7 +129,7 @@ class MainActivity : AppCompatActivity() {
                 createOfflineList()
             }
             else {
-                sharedPreferencesClass.setScreenId(it.screenId ?: "")
+                it.screenId?.let { it1 -> sharedPreferencesClass.setScreenId(it1) }
                 it.activeCampaigns.let {
                     createList(it , Constants.ACTIVE_CAMPAIGN_LIST)
                 }
@@ -209,6 +209,7 @@ class MainActivity : AppCompatActivity() {
         logReportInput.campaignLogs.clear()
         logReportInput.screenLogs.mediaPlaybackDetails.addAll(sharedPreferencesClass.getLogs().screenLogs.mediaPlaybackDetails)
         logReportInput.campaignLogs.addAll(sharedPreferencesClass.getLogs().campaignLogs)
+        logReportInput.screenLogs.screenId = sharedPreferencesClass.getScreenId()
         Log.d(Constants.TAG_NORMAL  , "Log Report")
         Log.d(Constants.TAG_NORMAL , logReportInput.toString())
         lifecycleScope.launch (Dispatchers.IO + Constants.coroutineExceptionHandler) {
@@ -243,7 +244,7 @@ class MainActivity : AppCompatActivity() {
             if ( point >= finalList.size ) {
                 point = 0
                 Log.d(Constants.TAG_NORMAL , "Resetting Point to 0")
-                if ( internetConnection )
+                if (internetConnection && sharedPreferencesClass.checkScreenIdExists())
                 {
                     Log.d(Constants.TAG_NORMAL , "Posting log Data")
                     postLogData()
@@ -261,11 +262,11 @@ class MainActivity : AppCompatActivity() {
         val screenMediaDetails = ScreenMediaDetails(time = Calendar.getInstance().time.toString() , mediaId = finalList[point].mediaId
             , campaignId = finalList[point].campaignId , screenStatus = if (internetConnection)  "online" else  "offline" )
         val logReport = sharedPreferencesClass.getLogs()
-        logReport.screenLogs.screenId = finalList[point].screenId
+        logReport.screenLogs.screenId = sharedPreferencesClass.getScreenId()
         logReport.screenLogs.mediaPlaybackDetails.add(screenMediaDetails)
 
         val campaignMediaDetails = CampaignMediaDetails(time = Calendar.getInstance().time.toString() , mediaId = finalList[point].mediaId
-            , screenId = finalList[point].screenId , screenStatus = if (internetConnection)  "online" else  "offline" )
+            , screenId = sharedPreferencesClass.getScreenId() , screenStatus = if (internetConnection)  "online" else  "offline" )
         val campaignLog = CampaignLogs(campaignId = finalList[point].campaignId , campaignMediaDetails)
         logReport.campaignLogs.add(campaignLog)
 
@@ -319,16 +320,11 @@ class MainActivity : AppCompatActivity() {
                 binding.videoView.visibility = View.GONE
                 binding.webView.loadUrl(finalList[point].url)
                 binding.webView.getSettings().javaScriptEnabled = true
-                binding.webView.webViewClient = object : WebViewClient() {
-                    override fun onPageCommitVisible(view: WebView?, url: String?) {
-                        super.onPageCommitVisible(view, url)
-                        addLog()
-                    }
-                }
                 object : CountDownTimer(finalList[point].duration.toLong() * 1000, 1000){
                     override fun onTick(p0: Long){}
                     override fun onFinish() {
                         binding.webView.loadUrl(Constants.DEFAULT_WEBVIEW_URL)
+                        addLog()
                         checkStatus()
                     }
                 }.start()
@@ -490,7 +486,6 @@ class MainActivity : AppCompatActivity() {
         var i = 0
         val list = mutableListOf<VideoData>()
 
-//        Log.d(Constants.TAG_NORMAL  , checkFileExists(pausedCampaigns[i]).toString())
         while ( i < pausedCampaigns.size )
         {
             if ( sharedPreferencesClass.checkSuccessIdExists(pausedCampaigns[i].filename) )
